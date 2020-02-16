@@ -8,7 +8,7 @@
 ## 9.18.2019 The paper is being written, I went through to finalize variable selection for use in variance partitioning
 #            
 
-setwd('/Users/grahambailes/grass_endophyte_community/alt_biom/')
+setwd('/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/')
 
 library(phyloseq); packageVersion('phyloseq')
 library(ggplot2); packageVersion('ggplot2')
@@ -45,6 +45,9 @@ library('lme4')
 library('nlme')
 library('cowplot')
 library('ggpubr')
+library('ggbeeswarm')
+
+options(scipen=999) # turn off scientific notation
 
 ## here is a living list of previous and current environment images for this script.  
 # load the most recent to have access to all objects created in the script
@@ -62,8 +65,12 @@ library('ggpubr')
 #save.image(file = "biom_2019_10_16.RData")
 #load(file = 'biom_2019_10_16.RData')
 
-# save.image(file = 'biom_2019_12_08.RData')
-# load.image(file = 'biom_2019_12_08.RData')
+# save.image(file = 'biom_2019_12_08.RData') 
+# load(file = 'biom_2019_12_08.RData')
+
+## this is the start of re-working statistics and analyses as per Bitty's and Dan's recomendations
+# save.image(file = 'biom_2020_01_15.RData')
+# load(file = 'biom_2020_01_15.RData')
 
 ################import my biom table created via my bioinformatic pipeline
 grass_biom <-import_biom('grass_97_wmeta.biom')
@@ -80,6 +87,10 @@ grass_biom
 ## this workbook is broken up into three sections
 
 # 1) final data massage using controls to remove contaminants (line )
+#    - investigae mock community - do I need to remove reads because of tag-switching
+#    - calculate diversity metrics - 
+#    - DEseq variance stabilization
+#    -
 
 # 2) Microbial composition and diversity (line )
 #    - composition at several taxonomic levels by host (line)
@@ -247,6 +258,195 @@ grass_biom_min_ab <- prune_taxa(pcotus, grass.min.ab)
 grass_biom_min_ab
 sum(sample_sums(grass_biom_min_ab)) #7419381
 sum(otu_table(grass_biom_min_ab)>0) # 5034
+
+##################################################################################################
+################################################ diversity metrics
+
+## Dan suggested that we need to perform our diversity statistics bevore we we variance stabilization - instead we will use rarifacation
+# to eaven out our read depth on our samples
+# at this moment (2020/01/15), I'm not sure whether or not this includes everything (such as # otus, ), or just analyses
+# such as microbial richness.  we'll start with that I suppose...
+
+## 
+# examine rarefaction curve
+rarecurve(t(otu_table(grass_biom_eco)), step=50, cex=0.5, label = F) # biom table minus controls
+rarecurve_mc <- rarecurve(t(otu_table(grass_biom_rem_mc)), step=50, cex=0.5, label = F) 
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/rarecurve.tiff", width = 2100, height = 1500, units = "px", res = 300)
+rarecurve(t(otu_table(grass_biom_rem_mc)), step=50, cex=0.5, label = F) 
+dev.off()
+
+min(sample_sums(grass_biom_eco)) # 7101
+mean(sample_sums(grass_biom_eco)) # 58566.17
+max(sample_sums(grass_biom_eco)) # 111141
+
+min(sample_sums(grass_biom_rem_mc)) # 7007
+mean(sample_sums(grass_biom_rem_mc)) # 56268.36
+max(sample_sums(grass_biom_rem_mc)) # 110609
+
+sort((sample_sums(grass_biom_eco))) 
+sort((sample_sums(grass_biom_rem_mc)))
+
+# looks like sample 16 has the lowest read number... looks like it is the 12th sample from french flat (F. roemeri) 
+# I guess we'll rarify to 7100 reads for our diversity metrics.
+
+# I wonder if the difference in sampling depth had an effect on the richness metrics I calculated on the var stabilized samples.
+# for instance, of the 12 (# at each site) samples with the lowest read number, six were FF F. roemeri.
+
+grass_biom_eco_rare <- rarefy_even_depth(grass_biom_rem_mc, rngseed=1, sample.size=0.9*min(sample_sums(grass_biom_rem_mc)), replace=F)
+rarecurve(t(otu_table(grass_biom_eco_rare)), step=50, cex=0.5, label = F)
+
+# boxplots of richness
+festuca_biom_rare_div <- subset_samples(grass_biom_eco_rare, host == 'F. roemeri')
+festuca_biom_rare_div@sam_data$site <- factor(festuca_biom_rare_div@sam_data$site, levels = c('French_flat', 'Roxy_Ann', 'Upper_Table','Hazel_Dell', 'Horse_Rock', 'Upper_Weir', 'Whidbey'))
+f_richness_rare_box <-plot_richness(festuca_biom_rare_div, x='site', measures='Observed', color = 'site' )
+f_richness_rare_box <- f_richness_rare_box + scale_colour_manual(values=c('#00CC00', '#009900', '#003300', '#990066', '#660099', '#3399FF', '#006699')) + geom_boxplot() + theme(legend.position="none", plot.subtitle = element_blank())
+f_richness_rare_box <- f_richness_rare_box +scale_x_discrete(breaks=c('French_flat', 'Roxy_Ann', 'Upper_Table','Hazel_Dell', 'Horse_Rock', 'Upper_Weir', 'Whidbey'),
+                                                             labels=c('French flat', 'Roxy Ann', 'Upper Table','Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey')) +  theme(panel.grid.minor=element_blank())
+f_richness_rare_box 
+
+plot_richness(festuca_biom_rare_div, x="site", measures=c("Observed")) + geom_boxplot()
+
+# extract values for Anova
+f_richness_rare_values <- f_richness_rare_box$data$value
+f_richness_rare_sites <- f_richness_rare_box$data$site
+
+f_richness_rare_sites <- gsub( 'French_flat', 'French Flat', f_richness_rare_sites)
+f_richness_rare_sites <- gsub( 'Roxy_Ann', 'Roxy Ann', f_richness_rare_sites)
+f_richness_rare_sites <- gsub( 'Upper_Table', 'Upper Table', f_richness_rare_sites)
+f_richness_rare_sites <- gsub( 'Lower_Table', 'Lower Table', f_richness_rare_sites)
+f_richness_rare_sites <- gsub( 'Hazel_Dell', 'Hazel Dell', f_richness_rare_sites)
+f_richness_rare_sites <- gsub( 'Horse_Rock', 'Horse Rock', f_richness_rare_sites)
+f_richness_rare_sites <- gsub( 'Upper_Weir', 'Upper Weir', f_richness_rare_sites)
+
+f_richness_rare_stats <- as.data.frame(f_richness_rare_sites)
+f_richness_rare_stats$observations <- f_richness_rare_values
+
+f_richness_stats_non_s_rare <- f_richness_rare_stats[-c(1:12),] ## without FF
+
+## statistics - ANOVA
+f_richness_rare_anova <- Anova(lm(observations~f_richness_rare_sites, data = f_richness_rare_stats), type = 3)
+f_richness_rare_anova
+#                         Sum Sq Df  F value  Pr(>F)    
+#  (Intercept)           200208  1 230.9433 <2e-16 ***
+#  f_richness_rare_sites   8407  6   1.6162  0.154    
+#  Residuals              66752 77 
+confint(f_richness_rare_anova)
+
+
+# and ANOVA without french flat
+f_richness_non_s_rare_anova <- Anova(lm(observations~f_richness_rare_sites, data = f_richness_stats_non_s_rare),type=3)
+f_richness_non_s_rare_anova ## without ff, results are not significant
+#                         Sum Sq Df  F value Pr(>F)    
+#  (Intercept)           230187  1 257.9221 <2e-16 ***
+#  f_richness_rare_sites   8302  5   1.8604 0.1133    
+#  Residuals              58903 66 3778  
+
+## tukey's post-hoc comparisons
+library(emmeans)
+f_richness_rare_tukey <- emmeans(lm(observations~f_richness_rare_sites, data = f_richness_rare_stats), pairwise ~ f_richness_rare_sites)  ##tukey test
+plot(f_richness_rare_tukey, comparisons = T)
+CLD(f_richness_rare_tukey$emmeans)
+
+
+## richness plot showing mean and se
+f_richness_rare_plot <- ggplot(data = f_richness_rare_stats, aes(x = f_richness_rare_sites, y = observations)) + 
+  geom_boxplot(aes(fill = f_richness_rare_sites), outlier.shape = NA, alpha = 0.9)+ 
+  scale_fill_manual(values=c('#00CC00', '#009900', '#003300', '#990066', '#660099', '#3399FF', '#006699'))+ 
+  geom_beeswarm(dodge.width = 0.75, size = 0.6, groupOnX = T)+
+  
+  theme(legend.position = 'none') + theme(axis.text.x= element_text(size = 12, angle=45, hjust = 1),axis.ticks = element_blank())
+
+f_richness_rare_plot
+
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/f_richness_rarefied.tiff", width = 2100, height = 1500, units = "px", res = 300)
+f_richness_rare_plot
+dev.off()
+
+# richness without FF
+f_rich_summary_non_s <- ddply(f_richness_stats_non_s, c('f_richness_sites'), summarise,
+                              N    = length(values), mean = mean(values),
+                              sd   = sd(values),se   = sd / sqrt(N))
+
+f_rich_summary_non_s$site <- c('Roxy Ann', 'Upper Table','Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey')
+f_rich_summary_non_s$site <- factor(f_rich_summary_non_s$site, levels =  c('Roxy Ann', 'Upper Table','Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey'))
+
+## richness plot showing mean and se
+f_richness_non_s_plot <- ggplot(f_rich_summary_non_s, aes(x=site, y=mean, colour=site)) + 
+  scale_colour_manual(values=c('#009900', '#003300', '#990066', '#660099', '#3399FF', '#006699'))+
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2) + theme_bw() +
+  geom_point(size = 1.2) + theme(legend.position="none", axis.text = element_text(size = 12, angle = 0)) + labs(x='Site', y='# OTUs') 
+
+f_richness_non_s_plot
+
+tiff(file = "/Users/grahambailes/grass_endophyte_community/Thesis/figures_for_thesis/f_richness_non_s.tiff", width = 2100, height = 1500, units = "px", res = 300)
+f_richness_non_s_plot
+dev.off()
+
+## Danthonia
+danthonia_biom_rare_div <- subset_samples(grass_biom_eco_rare, host == 'D. californica')
+danthonia_biom_rare_div@sam_data$site <- factor(danthonia_biom_rare_div@sam_data$site, levels = c('French_flat', 'Whetstone', 'Lower_Table','Hazel_Dell', 'Horse_Rock', 'Whidbey'))
+d_richness_rare_box <-plot_richness(danthonia_biom_rare_div, x='site', measures='Observed', color = 'site' )
+d_richness_rare_box <- d_richness_rare_box + scale_colour_manual(values=c('#F8766D', '#93AA00', '#00BA38', '#00B9E3', '#619CFF', '#FF61C3')) + geom_boxplot() + theme(legend.position="none")
+d_richness_rare_box <- d_richness_rare_box +scale_x_discrete(breaks=c('French_flat', 'Whetstone', 'Lower_Table','Hazel_Dell', 'Horse_Rock', 'Whidbey'),
+                                                             labels=c('French Flat', 'Whetstone', 'Lower Table','Hazel Dell', 'Horse Rock', 'Whidbey')) + theme(panel.grid.minor=element_blank(),
+                                                                                                                                                                panel.grid.major=element_blank())
+d_richness_rare_box
+
+d_richness_rare_values <- d_richness_rare_box$data$value
+d_richness_rare_sites <- d_richness_rare_box$data$site
+
+d_richness_rare_sites <- gsub( 'French_flat', 'French Flat', d_richness_rare_sites)
+d_richness_rare_sites <- gsub( 'Lower_Table', 'Lower Table', d_richness_rare_sites)
+d_richness_rare_sites <- gsub( 'Hazel_Dell', 'Hazel Dell', d_richness_rare_sites)
+d_richness_rare_sites <- gsub( 'Horse_Rock', 'Horse Rock', d_richness_rare_sites)
+d_richness_rare_sites <- gsub( 'Upper_Weir', 'Upper Weir', d_richness_rare_sites)
+
+d_richness_rare_stats <- as.data.frame(d_richness_rare_sites)
+d_richness_rare_stats$observations <- d_richness_rare_values
+d_richness_stats_non_s_rare <- d_richness_rare_stats[-c(1:12),] ## without FF
+
+d_richness_rare_anova <- Anova(lm(observations~d_richness_rare_sites, data = d_richness_rare_stats), type = 3)
+(d_richness_rare_anova)   
+#                    Sum Sq Df  F value Pr(>F)    
+#  (Intercept)           118803  1 209.5124 < 2.2e-16 ***
+#  d_richness_rare_sites  16196  5   5.7126 0.0001986 ***
+#  Residuals              36858 65 
+
+d_richness_anova_rare_non_s <- Anova(lm(observations~d_richness_rare_sites, data = d_richness_stats_non_s_rare), type = 3)
+d_richness_anova_rare_non_s  # without ff, slightly more significant
+
+#                   Sum Sq Df  F value Pr(>F)    
+#  (Intercept)           148964  1 281.2124 < 2.2e-16 ***
+#  d_richness_rare_sites  11374  4   5.3678  0.001031 ** 
+#  Residuals              28605 54 
+
+## data summary for figure 
+
+d_richness_rare_tukey <- emmeans(lm(observations~d_richness_rare_sites, data = d_richness_rare_stats), pairwise ~ d_richness_rare_sites)  ##tukey test
+plot(d_richness_rare_tukey, comparisons = T)
+CLD(d_richness_rare_tukey$emmeans)
+
+
+d_richness_rare_stats$site <- c(rep(c('French Flat', 'Whetstone', 'Lower Table','Hazel Dell'),each = 12),rep('Horse Rock',11), rep('Whidbey',12))
+d_richness_rare_stats$site <- factor(d_richness_rare_stats$site, levels =  c('French Flat', 'Whetstone', 'Lower Table','Hazel Dell', 'Horse Rock', 'Whidbey'))
+
+## richness plot showing mean and se
+d_richness_rare_lettering <- c('A', 'AB', 'A', 'AB', 'B', 'B')
+
+
+d_richness_rare_plot <- ggplot(data = d_richness_rare_stats, aes(x =site, y = observations)) + 
+  geom_boxplot(aes(fill = d_richness_rare_sites), outlier.shape = NA, alpha = 0.9)+ 
+  scale_fill_manual(values=c('#00CC00', '#009900', '#003300', '#990066', '#660099', '#3399FF', '#006699'))+ 
+  geom_beeswarm(dodge.width = 0.75, size = 0.6, groupOnX = T)+
+  stat_summary(geom = 'text', label = d_richness_rare_lettering, fun.y =mean, vjust = -6) + 
+  theme(legend.position = 'none') + theme(axis.text.x= element_text(size = 12, angle=45, hjust = 1),axis.ticks = element_blank()) +
+  theme(axis.title.x = element_blank())
+
+d_richness_rare_plot
+
+tiff(file = "/Users/grahambailes/grass_endophyte_community/Manuscript/git_repo/grass-endophyte-community/d_richness_rarefied.tiff", width = 2100, height = 1500, units = "px", res = 300)
+d_richness_rare_plot
+dev.off()
 
 ##################################################################################################
 ################################################# variance stabilization
@@ -422,10 +622,10 @@ venn.plot <- venn.diagram(
   cat.dist = 0.05,
   cat.just = list(c(0, -0.5), c(1, -0.5)),
   filename = NULL)
-  
+
 grid.draw(venn.plot)
 
-tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/figures/OTU_overlap.tiff", width = 1800, height = 1700, units = "px", res = 300)
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/OTU_overlap.tiff", width = 1800, height = 1700, units = "px", res = 300)
 grid.draw(venn.plot)
 dev.off()
 
@@ -594,7 +794,7 @@ legend('topright',
 dev.off()
 
 #########################################################################################
-#############################################species accumulation and diversity
+#############################################species accumulation 
 
 festuca_mat_1 <- as.data.frame(festuca_mat)
 rownames(festuca_mat_1) <- f_environ$samplename
@@ -635,149 +835,6 @@ plot(d_pool_accum)
 taxa_sums(festuca_biom_pa)
 sample_sums(festuca_biom_pa)
 
-##########################################################################################################
-##################################################### species richness among sites
-
-## this section is a bit messy, but we start by examining richness among sites using a box plot, then move on to
-# anova, and performing post-hoc contrasts when the Anova was significant.  We then make figures.
-
-# boxplots of richness
-festuca_biom_div <- subset_samples(grass_biom_eco, host == 'F. roemeri')
-festuca_biom_div@sam_data$site <- factor(festuca_biom_div@sam_data$site, levels = c('French_flat', 'Roxy_Ann', 'Upper_Table','Hazel_Dell', 'Horse_Rock', 'Upper_Weir', 'Whidbey'))
-f_richness_box <-plot_richness(festuca_biom_div, x='site', measures='Observed', color = 'site' )
-f_richness_box <- f_richness_box + scale_colour_manual(values=c('#00CC00', '#009900', '#003300', '#990066', '#660099', '#3399FF', '#006699')) + geom_boxplot() + theme(legend.position="none", plot.subtitle = element_blank())
-f_richness_box <- f_richness_box +scale_x_discrete(breaks=c('French_flat', 'Roxy_Ann', 'Upper_Table','Hazel_Dell', 'Horse_Rock', 'Upper_Weir', 'Whidbey'),
-                                                   labels=c('French flat', 'Roxy Ann', 'Upper Table','Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey')) +  theme(panel.grid.minor=element_blank())
-f_richness_box 
-
-# extract values for Anova
-f_richness_values <- f_richness_box$data$value
-f_richness_sites <- f_richness_box$data$site
-
-f_richness_sites <- gsub( 'French_flat', 'French Flat', f_richness_sites)
-f_richness_sites <- gsub( 'Roxy_Ann', 'Roxy Ann', f_richness_sites)
-f_richness_sites <- gsub( 'Upper_Table', 'Upper Table', f_richness_sites)
-f_richness_sites <- gsub( 'Lower_Table', 'Lower Table', f_richness_sites)
-f_richness_sites <- gsub( 'Hazel_Dell', 'Hazel Dell', f_richness_sites)
-f_richness_sites <- gsub( 'Horse_Rock', 'Horse Rock', f_richness_sites)
-f_richness_sites <- gsub( 'Upper_Weir', 'Upper Weir', f_richness_sites)
-
-f_richness_stats <- as.data.frame(f_richness_sites)
-f_richness_stats$observations <- f_richness_values
-
-f_richness_stats_non_s <- f_richness_stats[-c(1:12),] ## without FF
-
-## statistics - ANOVA
-f_richness_anova <- Anova(lm(observations~f_richness_sites, data = f_richness_stats), type = 3)
-f_richness_anova
-#                  Sum Sq Df  F value  Pr(>F)    
-#  (Intercept)      501434  1 136.4506 < 2e-16 ***
-#  f_richness_sites  64878  6   2.9424 0.01224 *  
-#  Residuals        282963 77   
-confint(f_richness_anova)
-
-
-# and ANOVA without french flat
-f_richness_non_s_anova <- Anova(lm(values~f_richness_sites, data = f_richness_stats_non_s),type=3)
-f_richness_non_s_anova ## without ff, results are not significant
-#                      Df Sum Sq Mean Sq F value Pr(>F)
-#    f_richness_sites  5  32814    6563   1.737  0.138
-#    Residuals        66 249362    3778  
-
-## tukey's post-hoc comparisons
-library(emmeans)
-f_richness_tukey <- emmeans(lm(observations~f_richness_sites, data = f_richness_stats), pairwise ~ f_richness_sites)  ##tukey test
-plot(f_richness_tukey, comparisons = T)
-CLD(f_richness_tukey$emmeans)
-
-f_rich_lettering <- c('A','AB','B','AB','AB','B','AB')
-## richness plot showing mean and se
-f_richness_plot <- ggplot(data = f_richness_stats, aes(x = f_richness_sites, y = observations)) + 
-  geom_boxplot(aes(fill = f_richness_sites), outlier.shape = NA, alpha = 0.9)+ 
-  scale_fill_manual(values=c('#00CC00', '#009900', '#003300', '#990066', '#660099', '#3399FF', '#006699'))+ 
-  geom_beeswarm(dodge.width = 0.75, size = 0.6, groupOnX = T)+
-  stat_summary(geom = 'text', label = f_rich_lettering, fun.y =mean, vjust = -5) + theme_bw()+
-  theme(legend.position = 'none') + theme(axis.text.x= element_text(size = 12, angle=45, hjust = 1),axis.ticks = element_blank())
-
-f_richness_plot
-
-tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/figures/f_richness.tiff", width = 2100, height = 1500, units = "px", res = 300)
-f_richness_plot
-dev.off()
-
-# richness without FF
-f_rich_summary_non_s <- ddply(f_richness_stats_non_s, c('f_richness_sites'), summarise,
-                              N    = length(values), mean = mean(values),
-                              sd   = sd(values),se   = sd / sqrt(N))
-
-f_rich_summary_non_s$site <- c('Roxy Ann', 'Upper Table','Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey')
-f_rich_summary_non_s$site <- factor(f_rich_summary_non_s$site, levels =  c('Roxy Ann', 'Upper Table','Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey'))
-
-## richness plot showing mean and se
-f_richness_non_s_plot <- ggplot(f_rich_summary_non_s, aes(x=site, y=mean, colour=site)) + 
-  scale_colour_manual(values=c('#009900', '#003300', '#990066', '#660099', '#3399FF', '#006699'))+
-  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2) + theme_bw() +
-  geom_point(size = 1.2) + theme(legend.position="none", axis.text = element_text(size = 12, angle = 0)) + labs(x='Site', y='# OTUs') 
-
-f_richness_non_s_plot
-
-tiff(file = "/Users/grahambailes/grass_endophyte_community/Thesis/figures_for_thesis/f_richness_non_s.tiff", width = 2100, height = 1500, units = "px", res = 300)
-f_richness_non_s_plot
-dev.off()
-
-## Danthonia
-danthonia_biom_div <- subset_samples(grass_biom_eco, host == 'D. californica')
-danthonia_biom_div@sam_data$site <- factor(danthonia_biom_div@sam_data$site, levels = c('French_flat', 'Whetstone', 'Lower_Table','Hazel_Dell', 'Horse_Rock', 'Whidbey'))
-d_richness_box <-plot_richness(danthonia_biom_div, x='site', measures='Observed', color = 'site' )
-d_richness_box <- d_richness_box + scale_colour_manual(values=c('#F8766D', '#93AA00', '#00BA38', '#00B9E3', '#619CFF', '#FF61C3')) + geom_boxplot() + theme(legend.position="none")
-d_richness_box <- d_richness_box +scale_x_discrete(breaks=c('French_flat', 'Whetstone', 'Lower_Table','Hazel_Dell', 'Horse_Rock', 'Whidbey'),
-                                                   labels=c('French Flat', 'Whetstone', 'Lower Table','Hazel Dell', 'Horse Rock', 'Whidbey')) + theme(panel.grid.minor=element_blank(),
-                                                                                                                                                      panel.grid.major=element_blank())
-d_richness_box
-
-
-
-d_richness_values <- d_richness_box$data$value
-d_richness_sites <- d_richness_box$data$site
-
-d_richness_stats <- as.data.frame(d_richness_sites)
-d_richness_stats$observations <- d_richness_values
-d_richness_stats_non_s <- d_richness_stats[-c(1:12),] ## without FF
-
-d_richness_anova <- Anova(lm(observations~d_richness_sites, data = d_richness_stats), type = 3)
-(d_richness_anova)   
-#                    Sum Sq Df  F value Pr(>F)    
-#  (Intercept)      457080  1 319.6820 <2e-16 ***
-#  d_richness_sites  13155  5   1.8402 0.1173    
-#  Residuals         92937 65  
-
-d_richness_anova_non_s <- Anova(lm(values~d_richness_sites, data = d_richness_stats_non_s), type = 3)
-d_richness_anova_non_s  # without ff, slightly more significant
-
-#                   Sum Sq Df  F value Pr(>F)    
-#  (Intercept)      498576  1 390.6707 <2e-16 ***
-# d_richness_sites  10906  4   2.1364 0.0888 .  
-# Residuals         68915 54  
-
-## data summary for figure 
-
-d_richness_stats$site <- c(rep(c('French Flat', 'Whetstone', 'Lower Table','Hazel Dell'),each = 12),rep('Horse Rock',11), rep('Whidbey',12))
-d_richness_stats$site <- factor(d_richness_stats$site, levels =  c('French Flat', 'Whetstone', 'Lower Table','Hazel Dell', 'Horse Rock', 'Whidbey'))
-
-## richness plot showing mean and se
-d_richness_plot <- ggplot(data = d_richness_stats, aes(x = site, y = observations)) + 
-  geom_boxplot(aes(fill = site), outlier.shape = NA, alpha = 0.9)+ 
-  scale_fill_manual(values=c('#00CC00', '#009900', '#003300', '#990066', '#660099', '#3399FF', '#006699'))+ 
-  geom_beeswarm(dodge.width = 0.75, size = 0.6, groupOnX = T)+
-  #stat_summary(geom = 'text', label = d_rich_lettering, fun.y =mean, vjust = -4) + # no sig diff.
-  theme(axis.text.x= element_text( angle=90, hjust = 1),  axis.ticks = element_blank())+ theme_bw()+
-  theme(legend.position = 'none') + theme(axis.text.x= element_text(size = 12, angle=45, hjust = 1),  axis.ticks = element_blank())
-
-d_richness_plot
-
-tiff(file = "/Users/grahambailes/grass_endophyte_community/Manuscript/figures/d_richness.tiff", width = 2100, height = 1500, units = "px", res = 300)
-d_richness_plot
-dev.off()
 
 ################################################################################################ 
 ################################################################################################ 
@@ -799,9 +856,9 @@ grass_biom_vs_cont_rem@sam_data$site <- gsub( 'Horse_Rock', 'Horse Rock', grass_
 grass_biom_vs_cont_rem@sam_data$site <- gsub( 'Upper_Weir', 'Upper Weir', grass_biom_vs_cont_rem@sam_data$site)
 
 grass_biom_vs_cont_rem@sam_data$site <- factor(grass_biom_vs_cont_rem@sam_data$site, levels = c('French Flat', 'Roxy Ann', 'Whetstone', 'Lower Table', 'Upper Table',
-                                                                              'Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey'))
+                                                                                                'Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey'))
 levels(grass_biom_vs_cont_rem@sam_data$site) <- c('French Flat', 'Roxy Ann', 'Whetstone', 'Lower Table', 'Upper Table',
-                                         'Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey')
+                                                  'Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey')
 
 
 ################################################ presence/absence data - communities from both hosts
@@ -829,13 +886,13 @@ fd_host <- fd_host + theme(legend.text = element_text(face = "italic"))+
   theme(legend.text=element_text(size=13), legend.title = element_text(size = 14))
 plot(fd_host)
 
-tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/figures/grass_host_nmds.tiff", width = 2100, height = 1500, units = "px", res = 300)
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/grass_host_nmds.tiff", width = 2100, height = 1500, units = "px", res = 300)
 fd_host
 dev.off()
 
 fd_host + facet_wrap(~site, 3) + theme(legend.position = 'none') ## figure showing seperation of host communities by site
 
-tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/figures/grass_host_nmds_facet.tiff", width = 2100, height = 1500, units = "px", res = 300)
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/grass_host_nmds_facet.tiff", width = 2100, height = 1500, units = "px", res = 300)
 fd_host + facet_wrap(~site, 3) + theme(legend.position = 'none')
 dev.off()
 
@@ -983,7 +1040,7 @@ f_site <- f_site + theme_bw() + stat_ellipse(size=0.8) + scale_colour_manual(val
 f_site <- f_site + theme(legend.text=element_text(size=13), legend.title = element_text(size = 14))
 plot(f_site)
 
-tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/figures/f_site_nmds.tiff", width = 2100, height = 1500, units = "px", res = 300)
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/f_site_nmds.tiff", width = 2100, height = 1500, units = "px", res = 300)
 f_site
 dev.off()
 
@@ -1054,7 +1111,7 @@ d_site <- d_site + theme_bw() + stat_ellipse(size = 0.8)+ scale_colour_manual(va
 d_site <- d_site + theme(legend.text=element_text(size=13), legend.title = element_text(size = 14))
 plot(d_site)
 
-tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/figures/d_site_nmds.tiff", width = 2100, height = 1500, units = "px", res = 300)
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/d_site_nmds.tiff", width = 2100, height = 1500, units = "px", res = 300)
 d_site
 dev.off()
 
@@ -1569,7 +1626,7 @@ mantel_corr <- mantel_corr + geom_hline(yintercept=0, linetype = 'dashed', color
 mantel_corr 
 
 
-tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/figures/mantel.tiff", width = 1800, height = 1500, units = "px", res = 300)
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/mantel.tiff", width = 1800, height = 1500, units = "px", res = 300)
 plot(mantel_corr)
 dev.off()
 
@@ -1582,6 +1639,173 @@ dev.off()
 ## I plan to use PCNM to refine the analysis, give more information to the system, and provide means to test the 
 ## explained variance in a variance partitioning model.
 
+##########################################################################################################
+##########################################################################################################
+############################################ Trend surface analysis
+
+## We will use trend surface analysis to examine any large-scale spatial patterns in out microbial data.  
+# trend surface analysis is often used as a preliminary analysis before using pcnm/db-MEM analyses to tease out more
+# fine sale structuring, but Dan has pointed out that given our sampling scheme, it may be more appropriate to 
+# stop after the trend surface.  This anaysis will still yeild variables that we can use in out variation partitioning model
+
+## center our data - not sure if it matters that we are using utm data and not lat lon data...
+f_coord.c=scale(f_coord, scale=FALSE) #centring
+plot(f_coord.c)
+X=f_coord.c[,1]# give the x coordinate of each sample point
+Y=f_coord.c[,2]# give the y coordinate of each sample point
+
+
+# Play around by plot some first, second and third-degree functions of x and y, just to see how they graph
+par(mfrow=c(3,3))
+
+sr.value(f_coord, (X), clegend = NULL)
+sr.value(f_coord, (Y), clegend = NULL)
+sr.value(f_coord, (X^2), clegend = NULL)
+sr.value(f_coord, (Y^2), clegend = NULL)
+sr.value(f_coord, (X*Y))
+sr.value(f_coord, (X^2*Y), clegend = NULL)
+sr.value(f_coord, (Y^2*X), clegend = NULL)
+sr.value(f_coord, (X^3), clegend = NULL)
+sr.value(f_coord, (Y^3), clegend = NULL)
+par(mfrow = c(1,1))
+
+# Now let’s run the trend surface analysis of the actual data. 
+# Firstwe will use a function poly() to construct third-degree orthogonal polynomials of the geographic coordinates. 
+# Then we will run a RDA with the polynomials as explanatory variables
+
+f_coord_poly_ortho=poly(as.matrix(f_coord.c), degree=3)  #raw=F default
+colnames(f_coord_poly_ortho)=c("X","X2","X3","Y","XY","X2Y","Y2","XY2","Y3")
+
+#RDA using all 9 polynomial terms
+f_trend_rda_ortho <- rda(f_mat_hel~., data=as.data.frame(f_coord_poly_ortho))
+#Computation of the adjusted R2.
+f_R2adj_poly <- RsquareAdj(f_trend_rda_ortho)$adj.r.squared # 0.124299
+
+# Forwardselection using Blanchet et al.(2008) double stopping criterion
+f_coord_trend_fwd <- forward.sel(f_mat_hel, f_coord_poly_ortho, adjR2thresh=f_R2adj_poly)
+#    variables order         R2      R2Cum   AdjR2Cum        F pvalue
+# 1        Y2     7 0.06260545 0.06260545 0.05117381 5.476506  0.001
+# 2        Y3     9 0.02867349 0.09127894 0.06884139 2.555848  0.001
+# 3         X     1 0.02875166 0.12003060 0.08703175 2.613878  0.001
+# 4        X2     2 0.02478729 0.14481789 0.10151753 2.289800  0.001
+# 5        XY     5 0.02000668 0.16482458 0.11128769 1.868495  0.001
+# 6       X2Y     6 0.01669935 0.18152393 0.11774657 1.571029  0.001
+
+#New RDA using the 6 terms retained
+f_coord_trend_rda <- rda(f_mat_hel~.,data=as.data.frame(f_coord_poly_ortho)[,f_coord_trend_fwd[,2]])
+summary(f_coord_trend_rda)
+
+RsquareAdj(rda(f_mat_hel~.,data=as.data.frame(f_coord_poly_ortho)[,f_coord_trend_fwd[,2]]))
+# adjusted r2: 0.1177466
+
+#overall test and test of canonical axes
+anova.cca(f_coord_trend_rda, step=1000)
+
+#           Df Variance      F Pr(>F)    
+#  Model     6  0.12725 2.8462  0.001 ***
+#  Residual 77  0.57377  
+
+anova.cca(f_coord_trend_rda, step=1000, by="axis")
+
+#           Df Variance      F Pr(>F)    
+#  RDA1      1  0.05458 7.3246  0.001 ***
+#  RDA2      1  0.03123 4.1908  0.001 ***
+#  RDA3      1  0.02041 2.7392  0.001 ***
+#  RDA4      1  0.00780 1.0471  0.853    
+#  RDA5      1  0.00731 0.9804  0.879    
+#  RDA6      1  0.00593 0.7952  0.992    
+#  Residual 77  0.57377        
+
+## looks like our first three RDAs are significant
+# we'll visualize the trends
+
+f_coord_trend_fit <- scores(f_coord_trend_rda, choices=c(1,2,3),display="lc", scaling=1)
+par(mfrow=c(1,3))
+sr.value(f_coord, f_coord_trend_fit[,1], clegend = NULL)
+sr.value(f_coord, f_coord_trend_fit[,2])
+sr.value(f_coord, f_coord_trend_fit[,3], clegend = NULL)
+par(mfrow=c(1,1)) # return to default par
+
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/festuca_trend_surface.tiff", width = 1800, height = 1500, units = "px", res = 300)
+par(mfrow=c(1,3))
+sr.value(f_coord, f_coord_trend_fit[,1], clegend = NULL)
+sr.value(f_coord, f_coord_trend_fit[,2])
+sr.value(f_coord, f_coord_trend_fit[,3], clegend = NULL)
+dev.off()
+
+############################################## danthonia
+
+d_coord.c=scale(d_coord, scale=FALSE) #centring
+plot(d_coord.c)
+X=d_coord.c[,1]# give the x coordinate of each sample point
+Y=d_coord.c[,2]# give the y coordinate of each sample point
+
+# Now let’s run the trend surface analysis of the actual data. 
+# Firstwe will use a function poly() to construct third-degree orthogonal polynomials of the geographic coordinates. 
+# Then we will run a RDA with the polynomials as explanatory variables
+
+d_coord_poly_ortho=poly(as.matrix(d_coord.c), degree=3)  #raw=F default
+colnames(d_coord_poly_ortho)=c("X","X2","X3","Y","XY","X2Y","Y2","XY2","Y3")
+
+#RDA using all 9 polynomial terms
+d_trend_rda_ortho <- rda(d_mat_hel~., data=as.data.frame(d_coord_poly_ortho))
+#Computation of the adjusted R2.
+d_R2adj_poly <- RsquareAdj(d_trend_rda_ortho)$adj.r.squared # 0.179888
+
+#Forwardselection using Blanchet et al.(2008) double stopping criterion
+d_coord_trend_fwd <- forward.sel(d_mat_hel, d_coord_poly_ortho, adjR2thresh=d_R2adj_poly)
+#    variables order         R2      R2Cum   AdjR2Cum        F pvalue
+# 1         Y     4 0.08169125 0.08169125 0.06838243 6.138128  0.001
+# 2        Y2     7 0.06266013 0.14435138 0.11918524 4.979718  0.001
+# 3       X2Y     6 0.03961335 0.18396473 0.14742584 3.252426  0.001
+# 4        X3     3 0.02701006 0.21097480 0.16315509 2.259325  0.001
+# 5         X     1 0.02546297 0.23643776 0.17770220 2.167594  0.001
+
+
+#New RDA using the 6 terms retained
+d_coord_trend_rda <- rda(d_mat_hel~.,data=as.data.frame(d_coord_poly_ortho)[,d_coord_trend_fwd[,2]])
+summary(d_coord_trend_rda)
+
+RsquareAdj(rda(d_mat_hel~.,data=as.data.frame(d_coord_poly_ortho)[,d_coord_trend_fwd[,2]]))
+# adjusted R2: 0.1777022
+
+#overall test and test of canonical axes
+anova.cca(d_coord_trend_rda, step=1000)
+
+#           Df Variance      F Pr(>F)    
+#  Model     5  0.16885 4.0255  0.001 ***
+#  Residual 65  0.54528    
+
+anova.cca(d_coord_trend_rda, step=1000, by="axis")
+
+#           Df Variance      F Pr(>F)    
+#  RDA1      1  0.07009 8.3556  0.001 ***
+#  RDA2      1  0.03680 4.3868  0.001 ***
+#  RDA3      1  0.02795 3.3312  0.001 ***
+#  RDA4      1  0.01897 2.2608  0.001 ***
+#  RDA5      1  0.01504 1.7928  0.001 ***
+#  Residual 65  0.54528       
+
+## looks like our first three RDAs are significant
+# we'll visualize the trends
+
+d_coord_trend_fit <- scores(d_coord_trend_rda, choices=c(1,2,3,4,5),display="lc", scaling=1)
+par(mfrow=c(2,3))
+sr.value(d_coord, d_coord_trend_fit[,1], clegend = NULL)
+sr.value(d_coord, d_coord_trend_fit[,2])
+sr.value(d_coord, d_coord_trend_fit[,3], clegend = NULL)
+sr.value(d_coord, d_coord_trend_fit[,4], clegend = NULL)
+sr.value(d_coord, d_coord_trend_fit[,5], clegend = NULL)
+par(mfrow=c(1,1)) # return to default par
+
+tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/git_repo/grass-endophyte-community/danthonia_trend_surface.tiff", width = 1800, height = 1500, units = "px", res = 300)
+par(mfrow=c(2,3))
+sr.value(d_coord, d_coord_trend_fit[,1], clegend = NULL)
+sr.value(d_coord, d_coord_trend_fit[,2])
+sr.value(d_coord, d_coord_trend_fit[,3], clegend = NULL)
+sr.value(d_coord, d_coord_trend_fit[,4], clegend = NULL)
+sr.value(d_coord, d_coord_trend_fit[,5], clegend = NULL)
+dev.off()
 
 ##########################################################################################################
 ##########################################################################################################
@@ -2279,7 +2503,7 @@ d_meta_1415 <- read.csv('d_meta_1415.csv')
 f_env_1415_cor <- cor(f_meta_1415[,-c(1:3,5,10:20,21,23:26,30,33,34,36,38:40)], use = 'na.or.complete', method = 'spearman')
 par(cex=0.7, mar = c(2,2,0,2))
 corrplot.mixed(cor(f_meta_1415[,-c(1:3,5,10:23,30, 38:40)], use = 'na.or.complete', method = 'spearman'),
-                lower.col = 'black', number.cex = 0.7, tl.pos = 'lt')
+               lower.col = 'black', number.cex = 0.7, tl.pos = 'lt')
 corrplot.mixed(f_env_1415_cor, lower.col = 'black', number.cex = 0.7, tl.pos = 'lt')
 f_env_1415_cor[which(f_env_1415_cor >=.70)]
 f_env_1415_cor[which(f_env_1415_cor<=(-.70))]
@@ -2300,6 +2524,68 @@ d_env_1415_cor[which(d_env_1415_cor<=(-.70))]
 
 d_env_1415_eval <- d_meta_1415[,-c(1:3,5,6,10:20,21,23,25,26,30,31,33,34,36,38:40)]
 
+
+######################################### variable reduction 2020_01_25
+## we've created different spatial variables (trend surfaces), and will try to use the ordi-step method for 
+# variable selection.  Dan suggested that we also try to include host species into a 'global' var par model to
+# back up our claim that host is important from the nmds analyses.
+
+f_spatial_trend <- f_coord_trend_fit
+colnames(f_spatial_trend) <- c('sp1', 'sp2', 'sp3')
+
+d_spatial_trend <- d_coord_trend_fit 
+colnames(d_spatial_trend) <- c('sp1', 'sp2', 'sp3','sp4', 'sp5')
+
+f_env_1415_cor <- cor(data.frame(f_meta_1415[,-c(1:3,5,10:20,21,23:26,30,33,34:40)],f_spatial_trend), use = 'na.or.complete', method = 'spearman')
+par(cex=0.7, mar = c(2,2,0,2))
+corrplot.mixed(cor(f_meta_1415[,-c(1:3,5,10:23,30, 38:40)], use = 'na.or.complete', method = 'spearman'),
+               lower.col = 'black', number.cex = 0.7, tl.pos = 'lt')
+corrplot.mixed(f_env_1415_cor, lower.col = 'black', number.cex = 0.7, tl.pos = 'lt')
+f_env_1415_cor[which(f_env_1415_cor >=.70)]
+f_env_1415_cor[which(f_env_1415_cor<=(-.70))]
+## I'll be keeping the plant data, rh coldest, temp coldest, temp seasonality, precip wettest and seasonality,
+# elevation and PCNM1/PCNM3.
+# This will remove correlations above 0.75 -If I need to I can remove more...
+
+f_env_1415_eval <- data.frame(f_meta_1415[,-c(1:3,5,10:20,21,23:26,30,33,34:40)])
+
+## for some reason, only the spatial variables are being chosen with ordiR2step - I may remove them from the 
+# variable selection method, or try a different cutoff method...
+
+f_bare_model <- rda(f_mat_hel ~1, f_env_1415_eval)
+f_full_model <- rda(f_mat_hel ~., f_env_1415_eval)
+f_mod_step <- ordiR2step(f_bare_model, f_full_model, perm.max = 1000) ## using 
+f_mod_step$anova
+
+
+## danthonia
+d_env_1415_cor <- cor(data.frame(d_meta_1415[,-c(1:3,5,6,10:20,21,23,25,26,30,33,34:40)],d_spatial_trend), use = 'na.or.complete', method = 'pearson')
+corrplot.mixed(d_env_1415_cor, lower.col = 'black', number.cex = 0.7, tl.pos = 'lt')
+d_env_1415_cor[which(d_env_1415_cor >=.70)]
+d_env_1415_cor[which(d_env_1415_cor<=(-.70))]
+## looks like mean RH,precip, dpt, and temp of warmest quarter need to go, as well as PCNM2
+# This will remove correlations above 0.75 - 
+
+d_env_1415_eval <- d_meta_1415[,-c(1:3,5,6,10:20,21,23,25,26,30,31,33,34,36,38:40)]
+
+
+d_env_1415_eval <- data.frame(d_spatial_trend[,1:5],d_meta_1415[,-c(1:3,5,10:20,21,23:26,30,33,34:40)])
+
+d_bare_model <- rda(d_mat_hel ~1, d_env_1415_eval)
+d_full_model <- rda(d_mat_hel ~., d_env_1415_eval)
+d_mod_step <- ordiR2step(d_bare_model, d_full_model, perm.max = 1000) ## using 
+d_mod_step$anova
+
+## this is the result of variable selction without the trend surface variables included...
+#                                    R2.adj Df     AIC      F Pr(>F)   
+#  + mean.RH.coldest.quarter       0.040780  1 -31.360 4.5286  0.002 **
+#  + precipitation.wettest.quarter 0.062532  1 -32.317 2.9027  0.002 **
+#  + density                       0.080618  1 -32.997 2.5935  0.002 **
+#  + temperature.seasonality       0.100981  1 -33.935 2.8120  0.002 **
+#  + precipitation.seasonality     0.109987  1 -33.851 1.7994  0.002 **
+#  + Elevation_m                   0.117737  1 -33.670 1.6852  0.002 **
+#  + sum_damage                    0.120372  1 -33.019 1.2307  0.028 * 
+#  <All variables>                 0.121253  
 ############################################################################################
 ############################################################################################
 ############################################ partitioning of Variance
@@ -2328,11 +2614,11 @@ f_mod_step$anova
 #  + precipitation.wettest.quarter 0.123630  1 -33.331 1.2363  0.020 * 
 #  <All variables>                 0.126183                       
 
-                        
+
 
 f_env_1415_model <-f_env_1415_eval[,c(7:11)] ## using correlation matrix
 f_env_1415_model2 <-f_meta_1415[,c(28,29,31,34)] # using ordistep
-        
+
 f_host_1415_model <-f_env_1415_eval[,c(1,3:5)] ## correlation matrix
 f_host_1415_model2 <-f_env_1415_eval[,c(4,5)] # ordistep
 
@@ -2546,7 +2832,7 @@ anova(fr_host_test, by = 'mar', perm.max = 500)
 # sum_damage  1   0.3750 1.2768  0.047 *  
 # density     1   1.3409 4.5655  0.001 ***
 # Residual   76  22.3216                  
-        
+
 
 
 ## festuca colors:  ('#00CC00', '#009900', '#003300', '#990066', '#660099','#3399FF', '#006699')
@@ -2567,12 +2853,12 @@ fr_env_test_plot <- ggplot(data = fr_env_test_samples, aes(x=CAP1, y=CAP2, color
   scale_colour_manual(values=c('#00CC00', '#009900', '#003300', '#990066', '#660099','#3399FF', '#006699'),
                       labels=c(  'French Flat', 'Roxy Ann', 'Upper Table','Hazel Dell', 'Horse Rock', 'Upper Weir', 'Whidbey'),
                       guide = guide_legend(reverse=TRUE)) + geom_point(size = 1) + theme_bw()+
- # theme(legend.text = element_text(size = 13), legend.title = element_text(size = 15))+
+  # theme(legend.text = element_text(size = 13), legend.title = element_text(size = 15))+
   theme(legend.position = 'none') + ## when multi-plot making...
   geom_segment(data = fr_env_arrows_sig,aes(x = 0, xend =mult*x_arrow, y = 0, yend =mult*y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = fr_env_arrows_sig,aes(x=(mult+mult/10)*x_arrow, y =(mult+mult/10)*y_arrow, 
-                                           label = lables), size = 3.5, color='black') +
+                                               label = lables), size = 3.5, color='black') +
   geom_point(data = fr_env_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 fr_env_test_plot
@@ -2619,7 +2905,7 @@ fr_host_test_plot <- ggplot(data = fr_host_test_samples, aes(x=CAP1, y=CAP2, col
   geom_segment(data = fr_host_arrows_sig,aes(x = 0, xend =mult*x_arrow, y = 0, yend =mult*y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = fr_host_arrows_sig,aes(x=(mult+mult/10)*x_arrow, y =(mult+mult/10)*y_arrow, 
-                                            label = lables), size = 3.5, color='black') +
+                                                label = lables), size = 3.5, color='black') +
   geom_point(data = fr_host_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 fr_host_test_plot
@@ -2635,8 +2921,8 @@ f_biplot_multi <- ggarrange(fr_env_test_plot, fr_space_test_plot, fr_host_test_p
 f_biplot_multi
 
 f_biplot_plus <-ggarrange(f_var_par, 
-         ggarrange(fr_env_test_plot, fr_space_test_plot, fr_host_test_plot, ncol = 3, labels = c('B','C','D'), 
-                   common.legend = T,legend = 'right'), nrow = 2, labels = 'A', legend = 'top')
+                          ggarrange(fr_env_test_plot, fr_space_test_plot, fr_host_test_plot, ncol = 3, labels = c('B','C','D'), 
+                                    common.legend = T,legend = 'right'), nrow = 2, labels = 'A', legend = 'top')
 
 f_biplot_plus
 
@@ -2732,7 +3018,7 @@ d_varpar_stacked$variance_explained <- c(0.067, 0.009,0.005,0.047,0.024, 0.039)
 d_varpar_stacked <- as.data.frame(d_varpar_stacked)
 
 
- d_var_par <- ggplot(d_varpar_stacked, aes(x = host, y = variance_explained, fill = variable)) + coord_flip() +
+d_var_par <- ggplot(d_varpar_stacked, aes(x = host, y = variance_explained, fill = variable)) + coord_flip() +
   geom_bar(stat = 'identity', position = position_stack(reverse = T)) +  labs(fill = NULL, x = NULL, y = 'variance explained') +
   scale_fill_brewer() + theme(legend.position = 'top', legend.text = element_text(size = 12)) + scale_y_continuous(breaks = (seq(0,0.22,0.02))) +
   theme(axis.text.y = element_blank()) 
@@ -2886,7 +3172,7 @@ dc_env_test_plot <- ggplot(data = dc_env_test_samples, aes(x=CAP1, y=CAP2, color
   geom_segment(data = dc_env_arrows,aes(x = 0, xend =mult*x_arrow, y = 0, yend =mult*y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = dc_env_arrows,aes(x=(mult)*x_arrow, y =(mult)*y_arrow, 
-                                                label = lables), size = 3.5, color='black') +
+                                           label = lables), size = 3.5, color='black') +
   geom_point(data = dc_env_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 
@@ -2939,7 +3225,7 @@ dc_host_test_plot <- ggplot(data = dc_host_test_samples, aes(x=CAP1, y=CAP2, col
   geom_segment(data = dc_host_arrows_sig,aes(x = 0, xend =mult*x_arrow, y = 0, yend =mult*y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = dc_host_arrows_sig,aes(x=mult*x_arrow, y =  mult*y_arrow, 
-                                            label = lables), size = 3.5, color='black') +
+                                                label = lables), size = 3.5, color='black') +
   geom_point(data = dc_host_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 dc_host_test_plot
@@ -3203,7 +3489,7 @@ f_path_var_par
 f_sap_varpar_stacked <- NULL
 f_sap_varpar_stacked$host <- rep('F. roemeri', 6)
 f_sap_varpar_stacked$variable <- c('climate', 'spatial distance', 'host effects',  'climate and space',
-                                    'climate and host', 'space and host')
+                                   'climate and host', 'space and host')
 f_sap_varpar_stacked$variance_explained <- c(0.07,0.0,0.01,0.05,0.02,0.03)
 f_sap_varpar_stacked <- as.data.frame(f_sap_varpar_stacked)
 
@@ -3217,7 +3503,7 @@ f_sap_var_par
 f_sym_varpar_stacked <- NULL
 f_sym_varpar_stacked$host <- rep('f. roemeri', 6)
 f_sym_varpar_stacked$variable <- c('climate', 'spatial distance', 'host effects',  'climate and space',
-                                    'climate and host', 'space and host')
+                                   'climate and host', 'space and host')
 f_sym_varpar_stacked$variance_explained <- c(0.05,0.01,0.00,0.03,0.02,0.02)
 f_sym_varpar_stacked <- as.data.frame(f_sym_varpar_stacked)
 
@@ -3247,7 +3533,7 @@ d_bare_path <- rda(d_path_hel ~ 1, d_meta_1415[,-c(1:3,5,6,10:22,36,38:40)])
 d_full_path <- rda(d_path_hel ~ ., d_meta_1415[,-c(1:3,5,6,10:22,36,38:40)])
 d_mod_path <- ordiR2step(d_bare_path, d_full_path, perm.max = 1000, direction = 'both')
 d_mod_path$anova
-  
+
 
 # variance partitioning
 d_path_varpart <- varpart(d_path_dist, d_env_1415_model2, d_space_1415_model2, d_host_1415_model)
@@ -3374,7 +3660,7 @@ plot(d_sym_varpart)
 d_path_varpar_stacked <- NULL
 d_path_varpar_stacked$host <- rep('D. californica', 5)
 d_path_varpar_stacked$variable <- c('climate',  'climate and space',
-                               'climate and host', 'space and host','climate space and host')
+                                    'climate and host', 'space and host','climate space and host')
 d_path_varpar_stacked$variance_explained <- c(0.02,0.12,0.03,0.01,0.04)
 d_path_varpar_stacked <- as.data.frame(d_path_varpar_stacked)
 
@@ -3388,7 +3674,7 @@ d_path_var_par
 d_sap_varpar_stacked <- NULL
 d_sap_varpar_stacked$host <- rep('D. californica', 5)
 d_sap_varpar_stacked$variable <- c('climate',  'climate and space',
-                                    'climate and host', 'space and host','climate space and host')
+                                   'climate and host', 'space and host','climate space and host')
 d_sap_varpar_stacked$variance_explained <- c(0.03,0.12,0.04,0.03,0.03)
 d_sap_varpar_stacked <- as.data.frame(d_sap_varpar_stacked)
 
@@ -3402,7 +3688,7 @@ d_sap_var_par
 d_sym_varpar_stacked <- NULL
 d_sym_varpar_stacked$host <- rep('D. californica', 5)
 d_sym_varpar_stacked$variable <- c('climate',  'climate and space',
-                                    'climate and host', 'space and host','climate space and host')
+                                   'climate and host', 'space and host','climate space and host')
 d_sym_varpar_stacked$variance_explained <- c(0.02,0.06,0.01,0.01,0.03)
 d_sym_varpar_stacked <- as.data.frame(d_sym_varpar_stacked)
 
@@ -3428,7 +3714,7 @@ f_path_space_test <- capscale(f_path_dist ~.+ Condition(f_env_1415_model2$temper
                                 Condition(f_env_1415_model2$MAT) +
                                 Condition(f_host_1415_model2$sum_damage) + 
                                 Condition(f_host_1415_model2$density)
-                                , data.frame(f_space_1415_model2), comm = f_path_hel)
+                              , data.frame(f_space_1415_model2), comm = f_path_hel)
 f_path_summary_space_test <- summary(f_path_space_test)
 f_path_space_test_samples <- as.data.frame(f_path_summary_space_test$sites)[,1:2]
 f_path_space_test_species <- as.data.frame(f_path_summary_space_test$species[,1:2])
@@ -4080,7 +4366,7 @@ dc_path_env_test_plot <- ggplot(data = d_path_env_test_samples, aes(x=CAP1, y=CA
   geom_segment(data = dc_env_arrows,aes(x = 0, xend =x_arrow, y = 0, yend =y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = dc_path_env_arrows,aes(x=x_arrow, y =  y_arrow, 
-                                           label = lables), size = 3, color='black') +
+                                                label = lables), size = 3, color='black') +
   geom_point(data = d_path_env_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 dc_path_env_test_plot
@@ -4107,7 +4393,7 @@ dc_path_space_test_plot <- ggplot(data = d_path_space_test_samples, aes(x=CAP1, 
   geom_segment(data = dc_space_arrows,aes(x = 0, xend =x_arrow, y = 0, yend =y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = dc_path_space_arrows,aes(x=x_arrow, y =  y_arrow, 
-                                                label = lables), size = 3, color='black') +
+                                                  label = lables), size = 3, color='black') +
   geom_point(data = d_path_space_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 dc_path_space_test_plot
@@ -4134,7 +4420,7 @@ dc_path_host_test_plot <- ggplot(data = d_path_host_test_samples, aes(x=CAP1, y=
   geom_segment(data = dc_host_arrows,aes(x = 0, xend =x_arrow, y = 0, yend =y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = dc_path_host_arrows,aes(x=x_arrow, y =  y_arrow, 
-                                                  label = lables), size = 3, color='black') +
+                                                 label = lables), size = 3, color='black') +
   geom_point(data = d_path_host_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 
@@ -4148,14 +4434,14 @@ dev.off()
 
 # all together now - I'll temporarily remove the legend from two of the three plots so they can fit together nicely
 d_path_biplot_multi <- ggarrange(dc_path_env_test_plot, dc_path_space_test_plot, dc_path_host_test_plot, nrow = 1, labels = c('A','B','C'), 
-                            common.legend = T,legend = 'top')
+                                 common.legend = T,legend = 'top')
 # note I changed the legend size to 10 for the multi pannel figure...
 d_path_biplot_multi
 
 ## with varpar added
 d_path_biplot_plus <-ggarrange(d_path_var_par, 
-                          ggarrange(dc_path_env_test_plot, dc_path_space_test_plot, dc_path_host_test_plot, ncol = 3, labels = c('B','C','D'), 
-                                    common.legend = T,legend = 'top'), nrow = 2, labels = 'A')
+                               ggarrange(dc_path_env_test_plot, dc_path_space_test_plot, dc_path_host_test_plot, ncol = 3, labels = c('B','C','D'), 
+                                         common.legend = T,legend = 'top'), nrow = 2, labels = 'A')
 d_path_biplot_plus
 
 tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/figures/d_path_biplot_multi_pannel.tiff", width = 2000, height = 1000, units = "px", res = 300)
@@ -4266,7 +4552,7 @@ dc_sap_env_test_plot <- ggplot(data = d_sap_env_test_samples, aes(x=CAP1, y=CAP2
   geom_segment(data = dc_env_arrows,aes(x = 0, xend =x_arrow, y = 0, yend =y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = dc_sap_env_arrows,aes(x=x_arrow, y =  y_arrow, 
-                                                label = lables), size = 3, color='black') +
+                                               label = lables), size = 3, color='black') +
   geom_point(data = d_sap_env_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 dc_sap_env_test_plot
@@ -4293,7 +4579,7 @@ dc_sap_space_test_plot <- ggplot(data = d_sap_space_test_samples, aes(x=CAP1, y=
   geom_segment(data = dc_space_arrows,aes(x = 0, xend =x_arrow, y = 0, yend =y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = dc_sap_space_arrows,aes(x=x_arrow, y =  y_arrow, 
-                                                  label = lables), size = 3, color='black') +
+                                                 label = lables), size = 3, color='black') +
   geom_point(data = d_sap_space_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 dc_sap_space_test_plot
@@ -4320,7 +4606,7 @@ dc_sap_host_test_plot <- ggplot(data = d_sap_host_test_samples, aes(x=CAP1, y=CA
   geom_segment(data = dc_host_arrows,aes(x = 0, xend =x_arrow, y = 0, yend =y_arrow),
                arrow = arrow(length = unit(0.5, "cm")), colour = "grey") +
   geom_text_repel(data = dc_sap_host_arrows,aes(x=x_arrow, y =  y_arrow, 
-                                                 label = lables), size = 3, color='black') +
+                                                label = lables), size = 3, color='black') +
   geom_point(data = d_sap_host_test_species, aes(x=CAP1, y=CAP2), color='black', shape = 3)
 
 
@@ -4334,14 +4620,14 @@ dev.off()
 
 # all together now - I'll temporarily remove the legend from two of the three plots so they can fit together nicely
 d_sap_biplot_multi <- ggarrange(dc_sap_env_test_plot, dc_sap_space_test_plot, dc_sap_host_test_plot, nrow = 1, labels = c('A','B','C'), 
-                                 common.legend = T,legend = 'top')
+                                common.legend = T,legend = 'top')
 # note I changed the legend size to 10 for the multi pannel figure...
 d_sap_biplot_multi
 
 ## with varpar added
 d_sap_biplot_plus <-ggarrange(d_sap_var_par, 
-                               ggarrange(dc_sap_env_test_plot, dc_sap_space_test_plot, dc_sap_host_test_plot, ncol = 3, labels = c('B','C','D'), 
-                                         common.legend = T,legend = 'top'), nrow = 2, labels = 'A')
+                              ggarrange(dc_sap_env_test_plot, dc_sap_space_test_plot, dc_sap_host_test_plot, ncol = 3, labels = c('B','C','D'), 
+                                        common.legend = T,legend = 'top'), nrow = 2, labels = 'A')
 d_sap_biplot_plus
 
 tiff(file = "/Users/grahambailes/grass_endophyte_community/manuscript/figures/d_sap_biplot_multi_pannel.tiff", width = 2000, height = 1000, units = "px", res = 300)
@@ -4380,7 +4666,7 @@ anova.cca(d_sym_space_test, perm.max = 500, by = 'mar')
 ##            Df SumOfSqs      F Pr(>F)    
 #  PCNM1      1   0.2502 0.9866  0.509
 # Residual   62  15.7223                   
-     
+
 d_sym_env_test <- capscale(d_sym_dist ~.+Condition(d_host_1415_model$plant_area) +
                              Condition(d_host_1415_model$seeds_produced) +
                              Condition(d_host_1415_model$sum_damage) +
@@ -4423,7 +4709,7 @@ anova.cca(d_sym_host_test, step=200, perm.max=200)
 #           Df SumOfSqs      F Pr(>F)    
 #  Model     4    0.984 0.9701  0.589
 #  Residual 62   15.722                  
-                 
+
 
 anova.cca(d_sym_host_test, perm.max = 500, by = 'mar')
 ##                Df SumOfSqs      F Pr(>F)    
