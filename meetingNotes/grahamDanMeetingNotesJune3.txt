@@ -1,0 +1,37 @@
+Graham paper 
+
+questions comments:
+
+where is the otu table
+
+site spatial data?
+environmental data?
+where is that OTU table...
+where are the graphics of the MEM's?
+
+todo:
+
+Klamath Mountain, Willamette Valley, Puget Sound indicator species
+
+point pattern was bad idea, so scratch that, or not....Graham is going to look into it.
+
+find out what's weird about french flat
+  - look for "famous" endophytes (i.e Rusty Rodriguez papers)
+  - look for species unique to French flats 
+
+Blast species stories at the conclusion, make sure they are what they think they are. 
+
+run trend analysis, since it's almost a straight n/s trend and one of the MEM's was north south if I recall
+
+For anybody
+indicator species analysis - can we lump into ecoregions or ecotypes, and run indicator analyses 
+
+Plan going forward:
+
+- Graham is going to refine the ecological analysis pipeline, 
+- This document will become what both Dan and Graham work on
+- practice git, i.e pulling and pushing when working closely on same repo
+- Graham and Dan will try collaboratively on the French Flat questions 
+- Dan will accept graham's invite on zoom contacts
+
+
