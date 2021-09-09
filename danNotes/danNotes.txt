@@ -1,0 +1,224 @@
+## let's have a look at Graham's pipeline. 
+## for the record, I've added SSH key access for this repo.
+## In case I need to do this again (github just stopped 
+## password access), you have to change the remote url to a
+## format that ssh can work with:
+
+git remote set-url origin git@github.com:gbailes/grass-endophyte-community.git
+
+## as far as grahams paper, I think I was supposed to:
+
+## """
+## 1. Check trend surfaces of community matrix varation - can we describe the 
+## variation in graham's community matrices with a north/sound trend in diversity 
+## and dissimilarity? I think I recommended this in place of the original dbmem analysis, 
+## if it turns out to be informative.  
+
+## 2. Attempt to quantify the apparent S->N increase in diversity. Means repeating 
+## Grahams diversity metrics on the pre-variance-stabilization (pre-deseq), then 
+## check to see if there is enough statistical power to build a point pattern model from these.  
+
+## 3. Figure out the story of the french flat site, the only place where the two grass 
+## host species share a lot of endophyte species. What are the shared species? 
+## Are they unique to the site? Are they interesting, as in maybe one of the species 
+## that have been shown to give panicum grass salt and drought tolerance?
+## """
+
+## this all comes from a 1.5 year-old email (Feb 2, 2020), "review of goals for Dan with Graham Paper"
+## #3 was the doozy. 
+
+## what is the general strategy here...
+
+## the first two goals (#1 and #2) will be in R. Not sure I agree with the 
+## approaches I suggested originally, with point patterns, etc. I think a 
+## simple.
+
+## the second will be sort of a treasure hunt. I think that one will take 
+## the most time. 
+
+## let's go through them in order...
+
+###### #1 general N/S trend ########
+## let's jog our memories about trend surfaces
+## with the tutorial from Borcard, on the orobatid mite data:
+
+## ugh, there is a new version of R out, they are on 4.x.x now. The beast grows
+## in its power... let's stay in the 3.x.x world for the moment. 
+
+## get the "s.value" function out the supp materials for borcard:
+
+R 
+
+library('ade4')
+library('vegan')
+
+source('/home/daniel/Documents/Books/Stats/numericalEcologyR/NEwR-2ed_code_data/NEwR-2ed_code_data/NEwR2-Functions/sr.value.R')
+
+xygrid <- expand.grid(1:10, 1:10)
+
+plot(xygrid)
+
+xygrid.c <- scale(xygrid, scale=FALSE)
+
+X <- xygrid.c[,1]
+Y <- xygrid.c[,2]
+
+par(mfrow=c(3,2))
+
+par(mfrow=c(1,1))
+
+sr.value(xygrid, (X))
+sr.value(xygrid, (Y))
+sr.value(xygrid, (X+Y))
+sr.value(xygrid, (X^2+Y))
+sr.value(xygrid, (X^2+Y^2))
+sr.value(xygrid, (X^3))
+
+sr.value(xygrid, (X^2))
+
+
+## cool. Lots of patterns are possible. 
+
+## onward with the tutorial...
+
+data('mite')
+data('mite.env')
+data('mite.xy')
+
+mite.h <- decostand(mite, "hellinger")
+
+mite.xy.c <- scale(mite.xy, center=TRUE, scale=FALSE)
+
+mite.poly <- poly(as.matrix(mite.xy.c), degree=3, raw=TRUE)
+
+## raw=TRUE retains all the requested polynomials. if FALSE,
+## apparently it retains only the truly orthogonal ones.
+
+## so we can try all kinds of polynomial surfaces out as 
+## possible models. 
+
+## modeling the N-S bioiversity trend (#2 above) should be
+## pretty simple, then. Just use richness, simpsons, whatever, 
+## and model it on a linear S-N increasing plane. Univariate,
+## so very straightforward
+
+## butu for modeling patterns in community variation, 
+## how can we use these polynomial surfaces to model a multivariate
+## community? 
+
+## borcard says with RDAs:
+
+colnames(mite.poly) = c("X", "X2", "X3", "Y", "XY", "X2Y", "Y2", "XY2", "Y3")  
+
+mite.trend.rda <- rda(mite.h ~ ., data=as.data.frame(mite.poly))
+
+R2adj.poly <- RsquareAdj(mite.trend.rda)
+
+## from here Borcard backs up, and uses the orthogonal polynomials.
+## I don't really understand how orthogonal polys are made, its magic
+## to me. But here we go:
+
+mite.poly.ortho <- poly(as.matrix(mite.xy), degree=3)
+colnames(mite.poly.ortho) = c("X", "X2", "X3", "Y", "XY", "X2Y", "Y2", "XY2", "Y3")  
+mite.trend.rda.ortho <- rda(mite.h ~ ., data=as.data.frame(mite.poly.ortho))
+
+
+mite.trend.rda.ortho
+
+mite.trend.rda
+
+R2adj.poly <- RsquareAdj(mite.trend.rda.ortho)$adj.r.squared
+
+## for some reason, these are giving me exactly the same results.
+## not going to take the time to figure out why...probably typo...
+
+## forward selection 
+## forward.sel doesn't seem to exist anymore.
+## I think the ortholog here is ordistep or ordiR2step.
+
+mod0 <- rda(mite.h ~ 1, data=as.data.frame(mite.poly.ortho))
+mod1 <- rda(mite.h ~ ., data=as.data.frame(mite.poly.ortho))
+
+mite.trend.fwd <- ordiR2step(mod0, mod1)
+
+## as per example, six terms retained, I think?
+## use these
+
+mite.trend.rda2 <- rda(mite.h ~ . 
+
+as.data.frame(mite.poly)
+
+as.data.frame(mite.poly)[
+
+mite.trend.fwd[,2]
+
+
+str(mite.trend.fwd)
+#############################################################################
+str(mod1)
+
+## great, so ordiR2step drops the uninformative components for you. 
+
+## so how do we know from this which were the important polynomials?
+
+
+str(mite.trend.fwd)
+
+str(mite.trend.fwd$terminfo)
+
+str(mite.trend.fwd$terminfo$terms)
+
+## um, is this the only way to extract this?
+attributes(mite.trend.fwd$terminfo$ordered)$names
+
+## probably not. seems stupid. But for the moment it 
+## will work:
+
+sigTerms <- attributes(mite.trend.fwd$terminfo$ordered)$names
+
+## check significance:
+
+anova.cca(mite.trend.fwd)
+
+anova.cca(mite.trend.fwd, by="axis")
+## RDA1 is by far the most important. But I don't really understand these 
+## new axes. Are they in terms the spatial predictors or the community 
+## matrix "response" variables? 
+## I assume they are in terms of the spatial predictors, the polynomials,
+## because there are six of them, matching the number of polynomials.
+
+## can we look at them?
+
+mite.trend.fit <- scores.cca(mite.trend.fwd, choices = c(1,2,3), display="lc", scaling=1)
+
+## that don't work anymore...how can we get these out of the model....
+## looks like they updated their methods to fit in with everybody else:
+
+mite.trend.fit <- scores(mite.trend.fwd, choices = c(1,2,3), display="lc", scaling=1)
+
+par(mfrow=c(1,3))
+sr.value(mite.xy,mite.trend.fit[,1])
+sr.value(mite.xy,mite.trend.fit[,2])
+sr.value(mite.xy,mite.trend.fit[,3])
+
+## great. that all makes some kind of sense. How do we apply to our 
+## situation?
+## we will have a multivariate community matrix (Graham's endophyte matrix), and a 
+## a single variate diversity index. 
+## we want to check them both for trend surfaces.
+
+## with the biodiversity, we suspect a simple, first order linear equation 
+## with a northward increase in biodiversity
+
+## for the multivariate community data, I think we just want to look for interesting
+## spatial patterns. So maybe, rerun the above analysis on grahams community data.
+
+## either way, we need his biome table. From this we can work backword get diversity 
+## metrics. 
+
+## where is this? graham has a biome file ready...
+
+## so next step will be to remember how to manipulate 
+
+## phyloseq, etc. Oh jeezus. 
+  
