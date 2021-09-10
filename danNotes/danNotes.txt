@@ -222,3 +222,188 @@ sr.value(mite.xy,mite.trend.fit[,3])
 
 ## phyloseq, etc. Oh jeezus. 
   
+########## get graham's biom table into memory ##########
+
+## the way to do this used to be in R, in phyloseq. Are folks still doing this?
+
+## a quick lit search shows lots of citations for phyloseq...
+
+## let's assume phyloseq is still cool. 
+
+library(phyloseq)
+
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+
+head(sample_data(biom97))
+
+colnames(sample_data(biom97))
+
+tax_table(biom97)[0:3,]
+
+head(tax_table(biom97))
+
+
+otu_table(biom97)[0:3,]
+
+dim(otu_table(biom97))
+
+## great. This looks pre-deseq transformation, which is also good. 
+
+## so what's task number one?
+
+## the most obvious task is the bioiversity regression. 
+
+## we need to rarefy to an even number of sequences, and 
+## get good, UTM-style xy coordinates for these sites. 
+
+## so, for the moment, get the estimated UTMs for each site. How?
+
+## let's go pyproj. lat/long epsg is 4326
+
+## let's export the sample data to something python can use:
+
+class(sample_data(biom97))
+
+str(sample_data(biom97))
+
+write.csv(sample_data(biom97), file='grahamSample.csv')
+
+
+##### over to python, to wrestle out the UTMs for these sites ######
+
+import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt; plt.ion()
+
+grahamSample = pd.read_csv('grahamSample.csv', index_col=0)
+
+grahamSample.columns
+
+grahamSample.site.to_list()
+
+grahamSample.site.unique().shape
+
+## pare down to one row for each site:
+
+grahamSample.head()
+
+#aa = grahamSample[['samplename','site','latitude','longitude']]
+## don't keep unique ids
+
+aa = grahamSample[['site','latitude','longitude']]
+bb = aa.reset_index(drop=True)
+## just to make sure the lat longs are indeed the same for each site:
+#cc = bb.groupby('site')
+#cc.get_group('Control')
+#cc.get_group('French_flat') ## etc
+#cc.groups.keys()
+## anyway, 
+dd = bb.drop_duplicates()
+dd.set_index('site', inplace=True)
+ee = dd.drop('Control')
+## great. Now how to convert these? go to geopanda? 
+grahamSites = (gpd.GeoDataFrame(
+    ee, geometry=gpd.points_from_xy(ee.longitude, ee.latitude))
+    .drop(['latitude','longitude'], axis=1)
+)
+
+grahamSites = gpd.GeoDataFrame(
+    ee, geometry=gpd.points_from_xy(ee.longitude, ee.latitude))
+
+
+grahamSites.crs
+
+grahamSites.set_crs('EPSG:4326', inplace=True)
+
+grahamSites.crs
+
+## reproject to UTM zone 10, which is EPSG:26710
+grahamSites.to_crs('EPSG:26710', inplace=True)
+
+grahamSites.crs
+
+#grahamSites.to_csv('grahamSiteCoords.csv')
+## not a perfect export, have to modify with vim to get a good csv
+## but works
+
+## check it on some maps. Here are some publicly available geojsons:
+
+## in shell ##
+wget https://raw.githubusercontent.com/johan/world.geo.json/master/countries/USA/WA.geo.json
+wget https://raw.githubusercontent.com/johan/world.geo.json/master/countries/USA/OR.geo.json
+## in shell ##
+
+## so how does it look?:
+
+
+oregon = gpd.read_file('OR.geo.json')
+oregon.to_crs('EPSG:26710', inplace=True)
+washington = gpd.read_file('WA.geo.json')
+washington.to_crs('EPSG:26710', inplace=True)
+
+plt.close('all')
+fig, ax = plt.subplots()
+oregon.plot(ax=ax)
+washington.plot(ax=ax)
+grahamSites.plot(ax=ax, color='red')
+
+## great. What else do we need here? Not much, methinks...back to R?
+
+######
+
+## now, we want to give species richness, simpsons or something for each 
+## site.
+
+## we need to rarify to some sort of common of denominator. How are our 
+## read depths?
+
+## drop the controls
+
+aa = subset_samples(biom97, site != 'Control')
+
+controls = subset_samples(biom97, site == 'Control')
+
+
+sample_data(biom97)$site
+
+options(scipen=999)
+
+par(mfrow=c(1,3))
+barplot(sort(sample_sums(biom97), decreasing=TRUE))
+barplot(sort(sample_sums(aa), decreasing=TRUE))
+barplot(sort(sample_sums(controls), decreasing=TRUE))
+
+
+par(mfrow=c(1,1))
+barplot(sort(sample_sums(controls), decreasing=TRUE))
+
+sample_sums(biom97)
+
+sort(sample_sums(biom97))
+
+
+data[order(data$num,decreasing = TRUE),]
+
+bar_plot(sample_sums(biom97))
+
+aalost <- aalost[order(aalost[,'164wood'], decreasing = TRUE),]
+
+data(enterotype)
+TopNOTUs = names(sort(taxa_sums(enterotype), TRUE)[1:10])
+ent10 = prune_taxa(TopNOTUs, enterotype)
+plot_bar(ent10, "SeqTech", fill = "Enterotype", facet_grid = ~Genus)
+
+
+
+biom97rar = rarefy_even_depth(biom97)
+## wow, we lost a lot of diversity that way,
+## but to be expected, I guess. 
+
+aarar = rarefy_even_depth(aa)
+## that helps a lot, there was a very small sample in the controls,
+## probably the single species control
+## we still rarefy down to 7101, which is a pretty low common denominator...
+
+
+
+sample_sums(aarar)
