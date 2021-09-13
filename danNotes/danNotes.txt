@@ -271,9 +271,11 @@ write.csv(sample_data(biom97), file='grahamSample.csv')
 
 ##### over to python, to wrestle out the UTMs for these sites ######
 
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt; plt.ion()
+from scipy import stats
 
 grahamSample = pd.read_csv('grahamSample.csv', index_col=0)
 
@@ -325,6 +327,9 @@ grahamSites.crs
 #grahamSites.to_csv('grahamSiteCoords.csv')
 ## not a perfect export, have to modify with vim to get a good csv
 ## but works
+
+## and maybe save us some work later:
+#grahamSites.to_pickle('grahamSiteCoords.p')
 
 ## check it on some maps. Here are some publicly available geojsons:
 
@@ -394,7 +399,6 @@ ent10 = prune_taxa(TopNOTUs, enterotype)
 plot_bar(ent10, "SeqTech", fill = "Enterotype", facet_grid = ~Genus)
 
 
-
 biom97rar = rarefy_even_depth(biom97)
 ## wow, we lost a lot of diversity that way,
 ## but to be expected, I guess. 
@@ -403,7 +407,221 @@ aarar = rarefy_even_depth(aa)
 ## that helps a lot, there was a very small sample in the controls,
 ## probably the single species control
 ## we still rarefy down to 7101, which is a pretty low common denominator...
+## how much do we lose if we go to 20,000?
+
+min(sample_sums(aa)) 
+
+sort(sample_sums(aa))[0:20]
+
+sum(sample_sums(aa) < 20000) ## six samples. 
+## that's not too many out of 155 samples...
+## are they important? where are they?
+
+sortedSamples <- sort(sample_sums(aa))
+
+size = 20000
+smallerThanSize <- sortedSamples[sortedSamples < size]
 
 
+sample_data(biom97)[names(smallerThanSize),'site']
+## shit. These are mostly french flat. We will lose
+## 5 of 12 FF sites if we drop our 5 lowest sample 
+## depths. Sucks. 
+
+
+bb = subset_samples(biom97, site != 'Control')
 
 sample_sums(aarar)
+
+## to answer if I can get rid of this, have to ask a stupid question:
+##  why are there so many samples? 
+## 9 sites, 2 hosts, some controls... I would have predicted 
+## = ~25 samples.
+## but graham has 155. 
+## how do these part out by site?
+
+biom97 
+
+head(sample_data(biom97))
+
+head(sample_data(biom97))
+
+## I head data exploration in R. look at this with pandas
+
+write.csv(sample_data(biom97), file="grahamsSampleData.csv")
+
+##### back to python #####
+
+## imports above
+
+## I'm betting that graham kept geographic info for each 
+## tuft that he sampled, or the origin of each transect,
+## and the location of that grass on its transect. 
+
+## so for each of the nine sites, there is probably a sub-map
+## that could be made. 
+
+## don't want to make it, don't think we need it. 
+## the main question is, can we pool these plants somehow
+## to make the sites comparable for diversity metrics?
+
+sampleData = pd.read_csv("grahamsSampleData.csv", index_col=0)
+
+sampleData.columns
+
+aa = sampleData[['host', 'site']]
+
+## there are two hosts, we are going to need to work with each 
+## host individually. Not sure, may also be useful to pool them
+## at some point. But can't see the point of that for the moment.
+
+## I think we'll want to start with one host, and then repeat 
+## all analyses for for the other, copy-n-paste. 
+
+sampleFroem = sampleData[sampleData.host == "F. roemeri"] 
+## 84 plants F.roemerii sampled
+
+sampleDanth = sampleData[sampleData.host == 'D. californica'] 
+## 71 of Danthonia
+
+## are these relatively evenly distributed among the sites?
+
+plt.close('all')
+fig, ax = plt.subplots(1,2)
+sampleDanth.site.hist(ax = ax[0])
+sampleFroem.site.hist(ax = ax[1])
+
+## yep. Missing one from horse rock,
+## but otherwise all have 12 plants each
+
+sampleFroem.site
+
+
+sampleDanth.site.unique().shape
+
+
+
+sampleDanth.site.unique()
+
+dir(sampleFroem.site.unique())
+
+aa = pd.Series(sampleFroem.site.unique())
+
+bb = pd.Series(sampleDanth.site.unique())
+
+aa[aa.isin(bb)]
+
+bb[~bb.isin(aa)]
+
+## great, so we can afford to lose a few 
+## low-abundance samples. problem is,
+## listed above, these are almost all 
+## from french flat
+## another option is to go to 10000 reads,
+## which seems like a respectable number
+
+## so let's do several levels, rarefy to 20000 reads,
+## and also to 10,000 and 7,000. Then we can compare and
+## see how much information is lost by going down to 7000.
+
+
+#### and back in R. #####
+
+## does phyloseq have a built-in adjustment 
+## for this?
+
+biom97_noCon = subset_samples(biom97, site != 'Control')
+controls = subset_samples(biom97, site == 'Control')
+
+
+sample_data(biom97)$site
+
+options(scipen=999)
+
+sampsize=7000
+biom97_rar.i = rarefy_even_depth(biom97_noCon, sample.size = sampsize, rngseed = 1)
+
+## 8220 OTUs lost. 
+
+sample_sums(biom97_rar.i)
+
+sample_sums(biom97_noCon)
+
+biom97_rar.i
+biom97_noCon
+
+biom97_rar.i
+
+## so now, get species richness for each:
+
+plot_richness(biom97_rar.i)
+
+plot_richness(biom97_rar.i, measures='Observed')
+
+## great. but as usual, phyloseq is doing more than I 
+## want it to. Can we just get the richnness values without 
+## the fancy graphics?
+
+## I think this is what I need:
+?estimate_richness
+
+## vegan has some options, too
+?estimateR
+?vegan::diversity
+
+sample_data(biom97_rar.i)
+
+dim(sample_data(biom97_rar.i))
+
+aa <- estimate_richness(biom97_rar.i, measures=c('Simpson', 'Observed'))
+
+?estimate_richness
+
+head(aa)
+
+## we'll need these:
+
+write.csv(aa, file='diversity7000.csv')
+write.csv(sample_data(biom97_rar.i), file='biom97_rar7000.csv')
+
+## great. but we also need site, x, and y on this. I hate doing this 
+## shit in R. Anyway, for the moment I think we got what we need out of 
+## of phyloseq?  
+
+## pingpong back to python
+
+## okay, so we want to make a geopanda with: 
+## unique sample name, host type, site, UTMs
+## for each sample...
+
+aa = pd.read_csv('diversity7000.csv')
+aa.columns=['sampleName','Observed','Simpson']
+aa['sampleName'] = aa.sampleName.str.replace('X', '')
+aa.set_index('sampleName', inplace=True)
+bb = pd.read_csv('biom97_rar7000.csv', index_col=0)
+bb = bb[['host','site', 'samplename']]
+cc = pd.read_pickle('grahamSiteCoords.p')
+dd = bb.merge(aa, left_index=True, right_index=True)
+## make sure to merge using the GPD so it stays GPD
+grahamDivGPD = cc.merge(dd, right_on='site', left_index=True)
+grahamDivGPD.to_pickle('grahamDivGPD.p')
+
+## now what? We want to check a general north/south trend in 
+## biodiversity...
+
+## can we get our y-coords out somehow?
+
+grahamDivGPD['geometry'].y
+
+## so can we regress this against the richness and simpsons?:
+
+stats.linregress(
+grahamDivGPD['geometry'].y,
+grahamDivGPD['Observed'],
+)
+
+## yeah, that is significant, r=.26, so r2 ~ 0.067?
+
+## tomorrow plot this. 
+
+
