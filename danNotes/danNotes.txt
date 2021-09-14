@@ -624,4 +624,30 @@ grahamDivGPD['Observed'],
 
 ## tomorrow plot this. 
 
+## here is tomorrow. 
 
+fig, ax = plt.subplots()
+
+plt.scatter(grahamDivGPD['geometry'].y, grahamDivGPD['Observed'])
+
+## combine these into points with error
+
+
+aa = grahamDivGPD.groupby('site').mean()
+bb = grahamDivGPD.groupby('site').std()
+cc = aa.merge(bb, left_index=True, right_index=True)
+cc.columns = ['richness', 'simpson', 'richnessSD', 'simpsonSD']
+siteRichness = grahamSites.merge(cc, left_index=True, right_index=True)
+
+siteRichness.plot()
+
+
+plt.close('all')
+fig, ax = plt.subplots()
+ax.scatter(siteRichness['geometry'].y, siteRichness['richness'])
+
+## this doesn't work
+ax.errorbar(siteRichness['geometry'].y, siteRichness['richness'],
+            yerr=siteRichness['richnessSD'])
+
+siteRichness
