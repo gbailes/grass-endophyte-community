@@ -710,8 +710,9 @@ def siteRichnessGPD(gpdDiv):
     siteRichness = grahamSites.merge(cc, left_index=True, right_index=True)
     return(siteRichness)
 
-def plotDiv(gpdRich):
-    fig, ax = plt.subplots()
+def plotDiv(gpdRich, tit='', ax=None):
+    if ax is not None: ax=ax
+    if ax is None: fig, ax = plt.subplots()
     ax.errorbar(x=gpdRich['geometry'].y, 
                 y=gpdRich['richness'],
                 yerr=gpdRich['richnessSD'],
@@ -736,19 +737,98 @@ def plotDiv(gpdRich):
     ax.text(right, top, corString,
             horizontalalignment='right',
             verticalalignment='top')
+    ax.set_title(tit)
 
 
 ## using these two functions, plus the above import block, we should
 ## be able to streamline this process:
 
 gpdDiv_filename = 'diversity7000.csv'
-
-gpdDiv_filename
-
 gpdRich = siteRichnessGPD(gpdDiv_filename)
+plotDiv(gpdRich, tit=gpdDiv_filename)
 
-plotDiv(gpdRich)
+fig, axes = plt.subplots(1,2)
+axes = np.ravel(axes)
+plotDiv(gpdRich, tit=gpdDiv_filename, ax=axes[1])
 
 ## great. Let's go back to R and make a pipeline for creating richness data 
 ## from each level of rarefaction:
 
+
+##### in R #########
+
+## need the following:
+
+library(phyloseq)
+## read in graham's data:
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+## get rid of controls
+biom97_noCon = subset_samples(biom97, site != 'Control')
+## set our sample size:
+sampsizes = c(7000, 10000, 20000, 30000)
+
+for (i in sampsizes){
+    filename = paste("diversity",i,".csv", sep='')
+    biom97_rar.i = rarefy_even_depth(biom97_noCon, sample.size = i, rngseed = 1)
+    aa <- estimate_richness(biom97_rar.i, measures=c('Simpson', 'Observed'))
+    write.csv(aa, file=filename)
+}
+
+
+#### now try these out in our code above, in python ####
+
+import os
+
+os.listdir()
+
+## using the above functions and import block:
+
+gpdDiv_filenames = ['diversity30000.csv','diversity20000.csv', 'diversity10000.csv', 'diversity7000.csv']
+
+fig, axes = plt.subplots(2,1)
+
+axes = np.ravel(axes)
+
+gpdDiv_filenames = ['diversity7000.csv','diversity20000.csv']
+
+for i,j in enumerate(gpdDiv_filenames):
+    gpdRich = siteRichnessGPD(j)
+    plotDiv(gpdRich, tit=j)
+
+## yeah, not much difference. 
+
+## let's start a notebook, to keep a sensible record of all this.
+
+
+## debug this, why does this have a hardwired 
+## load of the 7000 div table?
+
+'diversity20000.csv'
+
+def siteRichnessGPD(gpdDiv):
+
+gpdDiv = 'diversity7000.csv'
+
+
+aa = pd.read_csv(gpdDiv)
+
+aa.columns=['sampleName','Observed','Simpson']
+aa['sampleName'] = aa.sampleName.str.replace('X', '')
+aa.set_index('sampleName', inplace=True)
+
+#bb = pd.read_csv('biom97_rar7000.csv', index_col=0)
+bb = pd.read_csv('grahamSample.csv', index_col=0)
+bb = bb[['host','site', 'samplename']]
+
+grahamSites = pd.read_pickle('grahamSiteCoords.p')
+
+dd = bb.merge(aa, left_index=True, right_index=True)
+grahamDivGPD = grahamSites.merge(dd, right_on='site', left_index=True)
+del(aa,bb,dd)
+
+aa = grahamDivGPD.groupby('site').mean()
+bb = grahamDivGPD.groupby('site').std()
+cc = aa.merge(bb, left_index=True, right_index=True)
+cc.columns = ['richness', 'simpson', 'richnessSD', 'simpsonSD']
+siteRichness = grahamSites.merge(cc, left_index=True, right_index=True)
+return(siteRichness)
