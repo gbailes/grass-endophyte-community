@@ -276,6 +276,8 @@ import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt; plt.ion()
 from scipy import stats
+from sklearn.linear_model import LinearRegression
+
 
 grahamSample = pd.read_csv('grahamSample.csv', index_col=0)
 
@@ -291,6 +293,28 @@ grahamSample.head()
 
 #aa = grahamSample[['samplename','site','latitude','longitude']]
 ## don't keep unique ids
+
+grahamSample.head()
+
+## seems like we have two locations for Hazel Dell:
+grs = grahamSample.groupby('site')
+grs.get_group('Hazel_Dell').latitude.unique()
+grs.get_group('Hazel_Dell').longitude.unique()
+## so let's change all Hazel dell latitudes to be 
+## the same, keeping the more southerly (lower) value:
+
+grahamSample.latitude.dtype
+
+sum(grahamSample.latitude == 44.03) ## 12 samples
+sum(grahamSample.latitude == 44.02) ## also 12 samples
+
+## assign all to a single value:
+hd4403 = grahamSample.latitude == 44.03
+grahamSample.latitude[hd4403] = 44.02
+
+sum(grahamSample.latitude == 44.03)
+sum(grahamSample.latitude == 44.02)
+## looks good
 
 aa = grahamSample[['site','latitude','longitude']]
 bb = aa.reset_index(drop=True)
@@ -309,8 +333,6 @@ grahamSites = (gpd.GeoDataFrame(
     .drop(['latitude','longitude'], axis=1)
 )
 
-grahamSites = gpd.GeoDataFrame(
-    ee, geometry=gpd.points_from_xy(ee.longitude, ee.latitude))
 
 
 grahamSites.crs
@@ -604,7 +626,8 @@ cc = pd.read_pickle('grahamSiteCoords.p')
 dd = bb.merge(aa, left_index=True, right_index=True)
 ## make sure to merge using the GPD so it stays GPD
 grahamDivGPD = cc.merge(dd, right_on='site', left_index=True)
-grahamDivGPD.to_pickle('grahamDivGPD.p')
+#grahamDivGPD.to_pickle('grahamDivGPD.p')
+
 
 ## now what? We want to check a general north/south trend in 
 ## biodiversity...
@@ -627,11 +650,11 @@ grahamDivGPD['Observed'],
 ## here is tomorrow. 
 
 fig, ax = plt.subplots()
-
 plt.scatter(grahamDivGPD['geometry'].y, grahamDivGPD['Observed'])
 
 ## combine these into points with error
 
+grahamDivGPD
 
 aa = grahamDivGPD.groupby('site').mean()
 bb = grahamDivGPD.groupby('site').std()
@@ -639,15 +662,93 @@ cc = aa.merge(bb, left_index=True, right_index=True)
 cc.columns = ['richness', 'simpson', 'richnessSD', 'simpsonSD']
 siteRichness = grahamSites.merge(cc, left_index=True, right_index=True)
 
-siteRichness.plot()
-
-
 plt.close('all')
 fig, ax = plt.subplots()
-ax.scatter(siteRichness['geometry'].y, siteRichness['richness'])
+ax.errorbar(x=siteRichness['geometry'].y, 
+            y=siteRichness['richness'],
+            yerr=siteRichness['richnessSD'],
+            fmt='o',
+)
+## ols line
+X = siteRichness['geometry'].y.to_numpy().reshape(-1,1)
+Y = siteRichness['richness'].to_numpy().reshape(-1,1)
+ax.plot( X, LinearRegression().fit(X, Y).predict(X), 
+        c='k', linewidth=2, #linestyle= "dotted",
+        label='OLS linear regression model'
+       )
+## site labels:
+labs = siteRichness.index.to_series()
+xy = zip(siteRichness['geometry'].y, siteRichness['richness'])
+for i,j in enumerate(xy):
+    ax.annotate(labs[i], xy=j)
 
-## this doesn't work
-ax.errorbar(siteRichness['geometry'].y, siteRichness['richness'],
-            yerr=siteRichness['richnessSD'])
+## so to sum up:
 
-siteRichness
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt; plt.ion()
+from scipy import stats
+from sklearn.linear_model import LinearRegression
+
+## we need a siteRichness gpd for each level...
+def siteRichnessGPD(gpdDiv):
+    aa = pd.read_csv(gpdDiv)
+    aa.columns=['sampleName','Observed','Simpson']
+    aa['sampleName'] = aa.sampleName.str.replace('X', '')
+    aa.set_index('sampleName', inplace=True)
+    bb = pd.read_csv('biom97_rar7000.csv', index_col=0)
+    bb = bb[['host','site', 'samplename']]
+    grahamSites = pd.read_pickle('grahamSiteCoords.p')
+    dd = bb.merge(aa, left_index=True, right_index=True)
+    grahamDivGPD = grahamSites.merge(dd, right_on='site', left_index=True)
+    del(aa,bb,dd)
+    aa = grahamDivGPD.groupby('site').mean()
+    bb = grahamDivGPD.groupby('site').std()
+    cc = aa.merge(bb, left_index=True, right_index=True)
+    cc.columns = ['richness', 'simpson', 'richnessSD', 'simpsonSD']
+    siteRichness = grahamSites.merge(cc, left_index=True, right_index=True)
+    return(siteRichness)
+
+def plotDiv(gpdRich):
+    fig, ax = plt.subplots()
+    ax.errorbar(x=gpdRich['geometry'].y, 
+                y=gpdRich['richness'],
+                yerr=gpdRich['richnessSD'],
+                fmt='o',)
+    ## ols line
+    X = gpdRich['geometry'].y.to_numpy().reshape(-1,1)
+    Y = gpdRich['richness'].to_numpy().reshape(-1,1)
+    ax.plot( X, LinearRegression().fit(X, Y).predict(X), 
+            c='k', linewidth=2, #linestyle= "dotted",
+            label='OLS linear regression model'
+           )
+    ## site labels:
+    labs = gpdRich.index.to_series()
+    xy = zip(gpdRich['geometry'].y, gpdRich['richness'])
+    for i,j in enumerate(xy):
+        ax.annotate(labs[i], xy=j)
+    ## include linear regression results
+    corStats = stats.linregress( gpdRich['geometry'].y, gpdRich['richness'])
+    corString = (f'Pearson\'s r = {round(corStats[2],3)}, p = {round(corStats[3],3)}')
+    top = ax.get_ylim()[1]
+    right = ax.get_xlim()[1]
+    ax.text(right, top, corString,
+            horizontalalignment='right',
+            verticalalignment='top')
+
+
+## using these two functions, plus the above import block, we should
+## be able to streamline this process:
+
+gpdDiv_filename = 'diversity7000.csv'
+
+gpdDiv_filename
+
+gpdRich = siteRichnessGPD(gpdDiv_filename)
+
+plotDiv(gpdRich)
+
+## great. Let's go back to R and make a pipeline for creating richness data 
+## from each level of rarefaction:
+
