@@ -684,6 +684,7 @@ for i,j in enumerate(xy):
 
 ## so to sum up:
 
+import os
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -692,15 +693,21 @@ from scipy import stats
 from sklearn.linear_model import LinearRegression
 
 ## we need a siteRichness gpd for each level...
+
 def siteRichnessGPD(gpdDiv):
+    ## convert diversity results
     aa = pd.read_csv(gpdDiv)
     aa.columns=['sampleName','Observed','Simpson']
     aa['sampleName'] = aa.sampleName.str.replace('X', '')
     aa.set_index('sampleName', inplace=True)
-    bb = pd.read_csv('biom97_rar7000.csv', index_col=0)
+    ## convert sample data, just to get the site name and host
+    bb = pd.read_csv('grahamSample.csv', index_col=0)
     bb = bb[['host','site', 'samplename']]
+    ## bring our site geo info again:
     grahamSites = pd.read_pickle('grahamSiteCoords.p')
+    ## attach name and host onto the diversity data
     dd = bb.merge(aa, left_index=True, right_index=True)
+    ## make a gpdf
     grahamDivGPD = grahamSites.merge(dd, right_on='site', left_index=True)
     del(aa,bb,dd)
     aa = grahamDivGPD.groupby('site').mean()
@@ -764,14 +771,20 @@ library(phyloseq)
 biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
 ## get rid of controls
 biom97_noCon = subset_samples(biom97, site != 'Control')
-## set our sample size:
-sampsizes = c(7000, 10000, 20000, 30000)
 
-for (i in sampsizes){
-    filename = paste("diversity",i,".csv", sep='')
-    biom97_rar.i = rarefy_even_depth(biom97_noCon, sample.size = i, rngseed = 1)
-    aa <- estimate_richness(biom97_rar.i, measures=c('Simpson', 'Observed'))
-    write.csv(aa, file=filename)
+
+## split by host, with a few different read depths:
+sampsizes = c(7000, 18000, 30000, 40000)
+hosts = c("F. roemeri", "D. californica")
+
+for (j in hosts){
+    biom97.i = subset_samples(biom97_noCon, host == j)
+    for (i in sampsizes){
+        filename = paste(j,"diversity",i,".csv", sep='')
+        biom97_rar.i = rarefy_even_depth(biom97.i, sample.size = i, rngseed = 1)
+        aa <- estimate_richness(biom97_rar.i, measures=c('Simpson', 'Observed'))
+        write.csv(aa, file=filename)
+    }
 }
 
 
@@ -795,40 +808,62 @@ for i,j in enumerate(gpdDiv_filenames):
     gpdRich = siteRichnessGPD(j)
     plotDiv(gpdRich, tit=j)
 
+gpdDiv_filenames = ['diversity7000.csv','diversity20000.csv']
+
+for i,j in enumerate(gpdDiv_filenames):
+    gpdRich = siteRichnessGPD(j)
+    fig, axes = plt.subplots(2,1, figsize=(8,20))
+    plotDiv(gpdRich, tit=j, ax=axes[i])
+
 ## yeah, not much difference. 
 
 ## let's start a notebook, to keep a sensible record of all this.
 
+## okay, I've lost track of where I'm going with this
+## also, we forgot to split up by host. 
+## and it looks like we need to keep the latitudes 
+## as hosts were sampled from two different sites, 
+## with different latitudes
 
-## debug this, why does this have a hardwired 
-## load of the 7000 div table?
+## how can we straighten all this out....
 
-'diversity20000.csv'
+## I think we need to debug the pipeline as I have it to this point
+ 
+## and then redo as above, split by host, etc.
 
-def siteRichnessGPD(gpdDiv):
+## honestly, I don't think that the slight difference in 
+## latitude of the HD sites matters right now, so leave it for
+## simplicity's sake.
 
-gpdDiv = 'diversity7000.csv'
+## so task number one is split the above analysis by host.
+
+## as it is set up right now, simple to do the all-host 
+## div-by-lat check:
+
+gpdDiv_filenames = ['diversity7000.csv','diversity20000.csv']
+
+fig, axes = plt.subplots(2,1, figsize=(8,16))
+
+for i,j in enumerate(gpdDiv_filenames):
+    gpdRich = siteRichnessGPD(j)    
+    plotDiv(gpdRich, tit=j, ax=axes[i])
+
+## but we have to the split before this, the species richness
+## calculations are done in R. So back to the beast.  
+
+plt.close('all')
+
+gpdDiv_filenames = [ i for i in os.listdir() if "diversity" in i ]
+
+for i,j in enumerate(gpdDiv_filenames):
+    gpdRich = siteRichnessGPD(j)    
+    plotDiv(gpdRich, tit=j)
+
+## in general, it looks like Danthonia has a strong N/S diversity
+## gradient, but not Festuca. 
+
+## so, what do we do with this? report it in the notebook...
 
 
-aa = pd.read_csv(gpdDiv)
 
-aa.columns=['sampleName','Observed','Simpson']
-aa['sampleName'] = aa.sampleName.str.replace('X', '')
-aa.set_index('sampleName', inplace=True)
 
-#bb = pd.read_csv('biom97_rar7000.csv', index_col=0)
-bb = pd.read_csv('grahamSample.csv', index_col=0)
-bb = bb[['host','site', 'samplename']]
-
-grahamSites = pd.read_pickle('grahamSiteCoords.p')
-
-dd = bb.merge(aa, left_index=True, right_index=True)
-grahamDivGPD = grahamSites.merge(dd, right_on='site', left_index=True)
-del(aa,bb,dd)
-
-aa = grahamDivGPD.groupby('site').mean()
-bb = grahamDivGPD.groupby('site').std()
-cc = aa.merge(bb, left_index=True, right_index=True)
-cc.columns = ['richness', 'simpson', 'richnessSD', 'simpsonSD']
-siteRichness = grahamSites.merge(cc, left_index=True, right_index=True)
-return(siteRichness)
