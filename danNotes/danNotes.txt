@@ -898,6 +898,12 @@ festuOTU = otu_table(festuBiom)
 
 head(mite.h)
 
+## try it all with danthonia
+## our community matrix is 
+## the summed-by-site matrix made below in python
+
+danSiteOTUsums <- read.csv('danSiteOTUsums.csv')
+
 danthOTU.h <- decostand(danthOTU, "hellinger")
 
 ## we need graham's danthonia sampling scheme as an xy 
@@ -949,20 +955,44 @@ rownames(dd) <- dd$sample
 ## I need to be in python for this, methinks.
 
 write.csv(danthOTU, file='danthOTU.csv')
-write.csv(festuOTU, file='festuBiom.csv')
+write.csv(festuOTU, file='festOTU.csv')
 
 #### python #####
 
 sampleData = pd.read_csv("grahamsSampleData.csv", index_col=0)
+
 aa = pd.read_csv('danthOTU.csv', index_col=0)
 ## pretty sure we need rows to be sites, columns to be otus
 
-aa.T.iloc[0:5,0:5]
+danOTU = aa.T
+
+danOTU.iloc[0:5,0:5]
+
 sampleData.iloc[0:5,0:5]
 
+sampleData.site
+
+sampleData.shape
+
+danOTU.shape
+
+aa = danOTU.merge(sampleData.site, left_index=True, right_index=True)
+## we want a site (not sample) by OTU
 ## we need to get site info on the OTU table, then split and sum the columns. 
+danSiteOTUsums = aa.groupby('site').sum()
 
+## this is what we should transform for further analysis
 
+danSiteOTU.to_csv('danSiteOTUsums.csv')
 
+## now repeat for festuca
+aa = pd.read_csv('festOTU.csv')
+festOTU = aa.T
+aa = festOTU.merge(sampleData.site, left_index=True, right_index=True)
+festSiteOTUsums = aa.groupby('site').sum()
 
-## we need a
+festSiteOTUsums.to_csv('festSiteOTUsums.csv')
+
+## and back to R, above. 
+
+ 
