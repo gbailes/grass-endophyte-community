@@ -8,24 +8,24 @@ git remote set-url origin git@github.com:gbailes/grass-endophyte-community.git
 
 ## as far as grahams paper, I think I was supposed to:
 
-## """
-## 1. Check trend surfaces of community matrix varation - can we describe the 
-## variation in graham's community matrices with a north/sound trend in diversity 
-## and dissimilarity? I think I recommended this in place of the original dbmem analysis, 
-## if it turns out to be informative.  
+ """
+ 1. Check trend surfaces of community matrix varation - can we describe the 
+ variation in graham's community matrices with a north/sound trend in diversity 
+ and dissimilarity? I think I recommended this in place of the original dbmem analysis, 
+ if it turns out to be informative.  
 
-## 2. Attempt to quantify the apparent S->N increase in diversity. Means repeating 
-## Grahams diversity metrics on the pre-variance-stabilization (pre-deseq), then 
-## check to see if there is enough statistical power to build a point pattern model from these.  
+ 2. Attempt to quantify the apparent S->N increase in diversity. Means repeating 
+ Grahams diversity metrics on the pre-variance-stabilization (pre-deseq), then 
+ check to see if there is enough statistical power to build a point pattern model from these.  
 
-## 3. Figure out the story of the french flat site, the only place where the two grass 
-## host species share a lot of endophyte species. What are the shared species? 
-## Are they unique to the site? Are they interesting, as in maybe one of the species 
-## that have been shown to give panicum grass salt and drought tolerance?
-## """
+ 3. Figure out the story of the french flat site, the only place where the two grass 
+ host species share a lot of endophyte species. What are the shared species? 
+ Are they unique to the site? Are they interesting, as in maybe one of the species 
+ that have been shown to give panicum grass salt and drought tolerance?
+ """
 
-## this all comes from a 1.5 year-old email (Feb 2, 2020), "review of goals for Dan with Graham Paper"
-## #3 was the doozy. 
+ this all comes from a 1.5 year-old email (Feb 2, 2020), "review of goals for Dan with Graham Paper"
+ #3 was the doozy. 
 
 ## what is the general strategy here...
 
@@ -38,7 +38,8 @@ git remote set-url origin git@github.com:gbailes/grass-endophyte-community.git
 
 ## let's go through them in order...
 
-###### #1 general N/S trend ########
+##### remembering trend surfaces ########
+
 ## let's jog our memories about trend surfaces
 ## with the tutorial from Borcard, on the orobatid mite data:
 
@@ -154,7 +155,6 @@ mite.trend.fwd[,2]
 
 
 str(mite.trend.fwd)
-#############################################################################
 str(mod1)
 
 ## great, so ordiR2step drops the uninformative components for you. 
@@ -376,7 +376,7 @@ grahamSites.plot(ax=ax, color='red')
 
 ## great. What else do we need here? Not much, methinks...back to R?
 
-######
+###### task #2 species richness as a function of latitude ########
 
 ## now, we want to give species richness, simpsons or something for each 
 ## site.
@@ -864,6 +864,105 @@ for i,j in enumerate(gpdDiv_filenames):
 
 ## so, what do we do with this? report it in the notebook...
 
+## wait for feedback from Graham and Bitty on that...
+
+## and move on to another task
+
+############## Task #1 trend surfaces for community matrix ######
+
+## let's apply the above tutorial to grahams data, now that we 
+## have some familiarity with graham's setup
+
+
+library('ade4')
+library('vegan')
+library('phyloseq')
+
+## custom plot function. It is weird that the R plotter has such a 
+## hard time with this. It's just a scatter plot with variable radii.
+
+source('/home/daniel/Documents/Books/Stats/numericalEcologyR/NEwR-2ed_code_data/NEwR-2ed_code_data/NEwR2-Functions/sr.value.R')
+
+
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+## get rid of controls
+biom97_noCon = subset_samples(biom97, site != 'Control')
+
+danthBiom = subset_samples(biom97_noCon, host == 'D. californica' )
+festuBiom = subset_samples(biom97_noCon, host == 'F. roemeri')
+
+danthOTU = otu_table(danthBiom)
+festuOTU = otu_table(festuBiom)
+
+## run it through for Danthonia
+
+head(mite.h)
+
+danthOTU.h <- decostand(danthOTU, "hellinger")
+
+## we need graham's danthonia sampling scheme as an xy 
+
+grahamSiteCoords = read.csv('grahamSiteCoords.csv')
+
+head(grahamSiteCoords)
+
+aa = sample_data(danthBiom)
+
+bb = as.data.frame(cbind(rownames(aa), aa$site))
+colnames(bb) = c('sample', 'site')
+
+head(grahamSiteCoords)
+
+head(aa)
+
+grahamSiteCoords
+
+merge(grahamSiteCoords, bb)
+merge(bb, grahamSiteCoords)
+
+cc <- head(merge(grahamSiteCoords, bb))
+
+#####
+
+dd <- merge(bb, grahamSiteCoords)
+
+dd <- head(merge(bb, grahamSiteCoords))
+
+rownames(dd) <- dd$sample
+
+## not sure how to approach this. Is it appropriate to run these
+## surfaces on the deseq-stabilized results?
+
+## if not, not sure why we do the deseq step. We have to use 
+## it somewhere... if it was my paper I would just convert to 
+## presence/absence. But this is grahams paper, and he prefers
+## to use the deseq numbers. Others more knowledgeable than I
+## would agree, anyway. So onward...
+
+## but how do we deal with the various plant microbiomes. There
+## 12 for each site...just combine them all? I think this is 
+## kind of appropriate. In this case, we are sampling the 
+## site-microbiome of a plant...
+
+## not sure if this is what Graham did. How would we do this?
+
+## I need to be in python for this, methinks.
+
+write.csv(danthOTU, file='danthOTU.csv')
+write.csv(festuOTU, file='festuBiom.csv')
+
+#### python #####
+
+sampleData = pd.read_csv("grahamsSampleData.csv", index_col=0)
+aa = pd.read_csv('danthOTU.csv', index_col=0)
+## pretty sure we need rows to be sites, columns to be otus
+
+aa.T.iloc[0:5,0:5]
+sampleData.iloc[0:5,0:5]
+
+## we need to get site info on the OTU table, then split and sum the columns. 
 
 
 
+
+## we need a
