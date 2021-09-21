@@ -69,6 +69,7 @@ par(mfrow=c(3,2))
 par(mfrow=c(1,1))
 
 sr.value(xygrid, (X))
+
 sr.value(xygrid, (Y))
 sr.value(xygrid, (X+Y))
 sr.value(xygrid, (X^2+Y))
@@ -882,6 +883,11 @@ library('phyloseq')
 ## hard time with this. It's just a scatter plot with variable radii.
 
 source('/home/daniel/Documents/Books/Stats/numericalEcologyR/NEwR-2ed_code_data/NEwR-2ed_code_data/NEwR2-Functions/sr.value.R')
+i## example data 
+
+data('mite')
+data('mite.env')
+data('mite.xy')
 
 
 biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
@@ -896,63 +902,204 @@ festuOTU = otu_table(festuBiom)
 
 ## run it through for Danthonia
 
-head(mite.h)
 
 ## try it all with danthonia
 ## our community matrix is 
 ## the summed-by-site matrix made below in python
 
-danSiteOTUsums <- read.csv('danSiteOTUsums.csv')
+danSiteOTUsums <- read.csv('danSiteOTUsums.csv', row.names='site')
 
-danthOTU.h <- decostand(danthOTU, "hellinger")
+head(danSiteOTUsums, 1)
+
+danSiteOTUsums[1:5,1:5]
+
+rowSums(danSiteOTUsums)
+
+sum(colSums(danSiteOTUsums) == 0) ## 1395 empty columns. Is this a problem?
+
+nonzeroCols <- colSums(danSiteOTUsums) != 0
+
+aa <- danSiteOTUsums[,nonzeroCols]
+
+dim(danSiteOTUsums)
+dim(aa)
+
+## does this change the hellinger transformation results?:
+
+danthOTU.h <- decostand(danSiteOTUsums, "hellinger")
+
+danthOTUnonzero.h <- decostand(aa, "hellinger")
+
+
+rowSums(danthOTU.h)
+rowSums(danthOTUnonzero.h)
+
+## zero columns don't affect the numbers resulting from 
+## the transformation  
+## let's keep going with both, see if there are any down
+## stream effects of zero columns. Don't think there should
+## be problems, but worth checking.
 
 ## we need graham's danthonia sampling scheme as an xy 
 
-grahamSiteCoords = read.csv('grahamSiteCoords.csv')
-
-head(grahamSiteCoords)
-
-aa = sample_data(danthBiom)
-
-bb = as.data.frame(cbind(rownames(aa), aa$site))
-colnames(bb) = c('sample', 'site')
-
-head(grahamSiteCoords)
-
-head(aa)
+grahamSiteCoords = read.csv('grahamSiteCoords.csv', row.names='site')
 
 grahamSiteCoords
 
-merge(grahamSiteCoords, bb)
-merge(bb, grahamSiteCoords)
+dim(danSiteOTUsums)
 
-cc <- head(merge(grahamSiteCoords, bb))
+danSiteOTUsums[1:5,1:5]
 
-#####
+danSiteCoords <- grahamSiteCoords[rownames(danSiteOTUsums),]
 
-dd <- merge(bb, grahamSiteCoords)
+head(mite.xy)
 
-dd <- head(merge(bb, grahamSiteCoords))
+head(danSiteCoords)
 
-rownames(dd) <- dd$sample
+danSiteCoords.c <- scale(danSiteCoords, center=TRUE, scale=FALSE)
 
-## not sure how to approach this. Is it appropriate to run these
-## surfaces on the deseq-stabilized results?
+danSiteCoords.c
 
-## if not, not sure why we do the deseq step. We have to use 
-## it somewhere... if it was my paper I would just convert to 
-## presence/absence. But this is grahams paper, and he prefers
-## to use the deseq numbers. Others more knowledgeable than I
-## would agree, anyway. So onward...
+danth.poly <- poly(as.matrix(danSiteCoords.c), degree=3, raw=TRUE)
 
-## but how do we deal with the various plant microbiomes. There
-## 12 for each site...just combine them all? I think this is 
-## kind of appropriate. In this case, we are sampling the 
-## site-microbiome of a plant...
+danth.poly
 
-## not sure if this is what Graham did. How would we do this?
+head(mite.poly)
 
-## I need to be in python for this, methinks.
+head(mite.h)
+
+dim(as.data.frame(mite.poly))
+
+dim(mite.h)
+
+as.data.frame(mite.poly)
+
+danthOTU.h
+
+danthOTUnonzero.h
+
+dim(danthOTU.h)
+
+danth.trend.rda <- rda(danthOTU.h ~ ., data=as.data.frame(danth.poly))
+
+R2adj.poly <- RsquareAdj(danth.trend.rda)
+
+
+R2adj.poly ## r2 = 100%, that's fishy. Although, makes sense, with a million polynomials
+
+## can we pare down the model...
+## still following borcard:
+
+## x^3, y^3
+danth.poly.ortho3 <- poly(as.matrix(danSiteCoords), degree=3)
+danth.poly.ortho3
+danth.poly.ortho3.DF <- as.data.frame(danth.poly.ortho3)
+exDeg <- colnames(danth.poly.ortho3.DF)
+colnames(danth.poly.ortho3.DF) <- c("X", "X2", "X3", "Y", "XY", "X2Y", "Y2", "XY2", "Y3")  
+## x^2, y^2
+danth.poly.ortho2 <- poly(as.matrix(danSiteCoords), degree=2)
+danth.poly.ortho2
+danth.poly.ortho2.DF <- as.data.frame(danth.poly.ortho2)
+danth.poly.ortho2.DF
+colnames(danth.poly.ortho2.DF) <- c("X", "X2", "Y", "XY", "Y2")  
+## x^1, y^1
+danth.poly.ortho1 <- poly(as.matrix(danSiteCoords), degree=1)
+danth.poly.ortho1
+danth.poly.ortho1.DF <- as.data.frame(danth.poly.ortho1)
+danth.poly.ortho1.DF
+colnames(danth.poly.ortho1.DF) <- c("X", "Y")  
+
+danth.poly.ortho2.DF
+
+danth.poly.ortho
+
+
+danth.trend.rda.ortho2 <- rda(danthOTU.h ~ ., data=as.data.frame(danth.poly.ortho2.DF))
+
+## still 100 explained. but large differences among axes...
+
+R2adj.poly <- RsquareAdj(danth.trend.rda.ortho) ## pointless, but in the example
+
+## do the model selection as above
+mod0 <- rda(danthOTU.h ~ 1, data=danth.poly.ortho2.DF)
+mod1 <- rda(danthOTU.h ~ ., data=danth.poly.ortho2.DF)
+
+danth.trend.fwd <- ordiR2step(mod0, mod1)
+
+## huh, that doesn't work. 
+## says too many terms. 
+## makes sense, we've got 5 explanatory terms for six sites...
+
+mod0 <- rda(danthOTU.h ~ 1, data=danth.poly.ortho1.DF)
+mod1 <- rda(danthOTU.h ~ ., data=danth.poly.ortho1.DF)
+danth.trend.fwd <- ordiR2step(mod0, mod1)
+
+## meh, generally, this approach is not working
+## just not enough points
+
+mod1
+danth.trend.rda.ortho 
+
+anova.cca(mod1)
+
+anova.cca(danth.trend.fwd)
+
+## what above just a north-south pattern, centered or not?
+
+aa <- rda(danthOTU.h ~ danSiteCoords$X)
+anova.cca(aa)
+
+aa <- rda(danthOTU.h ~ danth.poly.ortho3.DF$Y2)
+anova.cca(aa)
+## well, that explains a fair amount of variance
+## and is statistically significance
+
+## how can we visualize?
+
+## I think we need to visualize our sample scheme here:
+
+plot(danSiteCoords)
+
+X = danSiteCoords$X
+Y = danSiteCoords$Y
+
+plot(danSiteCoords, asp=1)
+
+sr.value(danSiteCoords, Y)
+## this plotting function sucks. Probably need to redo in matplotlib.
+
+aa = rda(danthOTU.h ~ danth.poly.ortho3.DF$Y1)
+anova.cca(aa)
+
+aa = rda(danthOTU.h ~ danth.poly.ortho3.DF$Y2)
+anova.cca(aa)
+## this is the most relevant patter
+
+danth.poly.ortho3.DF$Y2
+
+aa = rda(danthOTU.h ~ danth.poly.ortho3.DF$Y3)
+anova.cca(aa)
+
+## so to review:
+## y
+danthYmodel <- rda(danthOTU.h ~ danSiteCoords$Y)
+#danthYmodel <- rda(danthOTU.h ~ danth.poly.ortho3.DF$Y)
+anova.cca(danthYmodel)
+## y2 
+danthY2model <- rda(danthOTU.h ~ danth.poly.ortho3.DF$Y2)
+anova.cca(danthY2model)
+## y3
+danthY3model <- rda(danthOTU.h ~ danth.poly.ortho3.DF$Y3)
+anova.cca(danthY3model)
+
+## y2 is the only significant trend. 
+## this is probably a reflection of the general north south 
+## trend in diversity, coupled with the weirdness in the 
+## south of french flat. The shifted parabolla allows 
+## a weird southern point (FF), and monotonic increase after
+## that due to increasing similarity
+
+This is probably a reflection of the general north south trend in diversity, coupled with the weirdness in the south of french flat. The shifted parabolla allows a weird southern point (FF), and monotonic increase after that due to increasing diversity.
 
 write.csv(danthOTU, file='danthOTU.csv')
 write.csv(festuOTU, file='festOTU.csv')
@@ -963,6 +1110,7 @@ sampleData = pd.read_csv("grahamsSampleData.csv", index_col=0)
 
 aa = pd.read_csv('danthOTU.csv', index_col=0)
 ## pretty sure we need rows to be sites, columns to be otus
+
 
 danOTU = aa.T
 
@@ -986,13 +1134,59 @@ danSiteOTUsums = aa.groupby('site').sum()
 danSiteOTU.to_csv('danSiteOTUsums.csv')
 
 ## now repeat for festuca
+
 aa = pd.read_csv('festOTU.csv')
 festOTU = aa.T
 aa = festOTU.merge(sampleData.site, left_index=True, right_index=True)
 festSiteOTUsums = aa.groupby('site').sum()
-
 festSiteOTUsums.to_csv('festSiteOTUsums.csv')
 
-## and back to R, above. 
+## and back to R, as above. 
 
- 
+## to check polynomial trends in festuca
+
+library('ade4')
+library('vegan')
+library('phyloseq')
+
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+## get rid of controls
+biom97_noCon = subset_samples(biom97, site != 'Control')
+festuBiom = subset_samples(biom97_noCon, host == 'F. roemeri')
+festuOTU = otu_table(festuBiom)
+festSiteOTUsums <- read.csv('festSiteOTUsums.csv', row.names='site')
+festOTU.h <- decostand(festSiteOTUsums, "hellinger")
+grahamSiteCoords = read.csv('grahamSiteCoords.csv', row.names='site')
+festSiteCoords <- grahamSiteCoords[rownames(festSiteOTUsums),]
+fest.poly.ortho3 <- poly(as.matrix(festSiteCoords), degree=3)
+fest.poly.ortho3.DF <- as.data.frame(fest.poly.ortho3)
+colnames(fest.poly.ortho3.DF) <- c("X", "X2", "X3", "Y", "XY", "X2Y", "Y2", "XY2", "Y3")  
+
+festYmodel <- rda(festOTU.h ~ fest.poly.ortho3.DF$Y)
+anova.cca(festYmodel)
+
+festY2model <- rda(festOTU.h ~ fest.poly.ortho3.DF$Y2)
+anova.cca(festY2model)
+
+festY3model <- rda(festOTU.h ~ fest.poly.ortho3.DF$Y3)
+anova.cca(festY3model)
+
+## back up, here is a cleaner version of the danth pipeline:
+
+danthBiom = subset_samples(biom97_noCon, host == 'F. roemeri')
+danthOTU = otu_table(danthBiom)
+danthSiteOTUsums <- read.csv('danSiteOTUsums.csv', row.names='site')
+danthOTU.h <- decostand(danthSiteOTUsums, "hellinger")
+grahamSiteCoords = read.csv('grahamSiteCoords.csv', row.names='site')
+danthSiteCoords <- grahamSiteCoords[rownames(danthSiteOTUsums),]
+danth.poly.ortho3 <- poly(as.matrix(danthSiteCoords), degree=3)
+danth.poly.ortho3.DF <- as.data.frame(danth.poly.ortho3)
+colnames(danth.poly.ortho3.DF) <- c("X", "X2", "X3", "Y", "XY", "X2Y", "Y2", "XY2", "Y3")
+
+## yeah, not seeing much there. 
+
+## update notebook, start thinking about the scraping problem.
+
+
+
+######## task #3 ######
