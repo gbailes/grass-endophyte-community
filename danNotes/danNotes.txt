@@ -1190,3 +1190,67 @@ colnames(danth.poly.ortho3.DF) <- c("X", "X2", "X3", "Y", "XY", "X2Y", "Y2", "XY
 
 
 ######## task #3 ######
+
+## we need to 
+
+## 1. see what species are shared at FF among the two hosts, and
+## 2. get the sequences for these
+## 4. automate blast for these
+## 3. figure out if there are any interesting ecological stories known 
+##    about these fungi
+
+## 3 will require reading over the sources that blast comes up with, 
+## also just generally searching the lit for the names that pop up
+
+## step one should be pretty "easy", with phyloseq:
+
+library(phyloseq)
+
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+ffBiom = subset_samples(biom97, site == "French_flat")
+festuFFbiom = subset_samples(ffBiom, host == 'F. roemeri')
+danthFFbiom = subset_samples(ffBiom, host == 'D. californica')
+
+festuFFOTU = otu_table(festuFFbiom)
+festuFFOTUnoZero = festuFFOTU[rowSums(festuFFOTU) != 0]
+
+danthFFOTU = otu_table(danthFFbiom)
+danthFFOTUnoZero = danthFFOTU[rowSums(danthFFOTU) != 0]
+
+danthFFOTUnoZero
+festuFFOTUnoZero
+
+## we should be able to do an inner join on these:
+class(as.data.frame(danthFFOTUnoZero))
+
+#aa = merge(danthOTUnoZero, festuOTUnoZero)
+## okay, that was a very bad idea. almost core dumped. 
+
+## do it the old fashioned way: 
+
+dim(danthFFOTUnoZero) ## 843 species
+
+dim(festuFFOTUnoZero) ## 884 species
+
+sum(rownames(danthFFOTUnoZero) %in% rownames(festuFFOTUnoZero))
+sum(rownames(festuFFOTUnoZero) %in% rownames(danthFFOTUnoZero))
+## 463 shared species among festuca and danthonia at french flat
+
+sharedSppFilter <- rownames(festuFFOTUnoZero) %in% rownames(danthFFOTUnoZero)
+
+dim(danthFFOTUnoZero)
+
+dim(festuFFOTUnoZero)
+
+length(sharedSppFilter)
+
+sharedSpp <- rownames(festuFFOTUnoZero[sharedSppFilter])
+
+for (i in sharedSpp){print(i)}
+
+sink('sharedFFspecies.txt')
+for (i in sharedSpp){cat(i);cat("\n")}
+sink()
+
+## great. how can we get the sequences for this?
+
