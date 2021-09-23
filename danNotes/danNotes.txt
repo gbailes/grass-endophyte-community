@@ -1,3 +1,4 @@
+
 ## let's have a look at Graham's pipeline. 
 ## for the record, I've added SSH key access for this repo.
 ## In case I need to do this again (github just stopped 
@@ -5,6 +6,9 @@
 ## format that ssh can work with:
 
 git remote set-url origin git@github.com:gbailes/grass-endophyte-community.git
+
+## Grahams notebook for making his biom can be viewed here:
+https://nbviewer.jupyter.org/github/gbailes/grass-endophyte-community/blob/master/alt_biom.ipynb
 
 ## as far as grahams paper, I think I was supposed to:
 
@@ -1249,8 +1253,53 @@ sharedSpp <- rownames(festuFFOTUnoZero[sharedSppFilter])
 for (i in sharedSpp){print(i)}
 
 sink('sharedFFspecies.txt')
-for (i in sharedSpp){cat(i);cat("\n")}
+    for (i in sharedSpp){cat(i);cat("\n")}
 sink()
 
 ## great. how can we get the sequences for this?
 
+
+## graham has kindly supplied the sequence data for his otus:
+## in shell what do these look like:
+head ../otus_97_uclust.fasta
+## I think this is what we want, has unique identifiers
+head otus_97_uclust_relabel.fasta 
+
+##### back to python #####
+
+from Bio import SeqIO
+import re
+
+## we should be able to query the the sequences using 
+## the otu names
+
+## read in the shared otus
+
+## we need a regex I think
+## should work for cleaning up both files:
+p =  re.compile('(OTU).*(grass)') 
+
+## shared species are small enough it's okay to read it all in
+with open('sharedFFspecies.txt', 'r') as sharedOTUs:
+    aa = sharedOTUs.readlines()
+    cleanedSharedSpp = [ p.match(i).group() for i in aa]
+
+## ugh, biopython, haven't used in a while. How do we read in the 
+## fasta file again?
+
+help(SeqIO.parse)
+
+cc = []
+bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
+for i in bb: 
+    if p.match(i.id).group() in cleanedSharedSpp:
+        i.name = p.match(i.id).group()
+        i.id = p.match(i.id).group()
+        i.description = ''
+        cc.append(i)
+
+SeqIO.write(cc, "ffSharedSpp.faa", "fasta")
+
+## did that work? looks right. 
+
+## check it tomorrow. 
