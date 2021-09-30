@@ -1,0 +1,8 @@
+OTU1879:6grass
+OTU3919:89grass
+OTU534:7grass
+OTU284:8grass
+OTU3455:8grass
+OTU870:9grass
+OTU3897:98grass
+OTU2164:93grass

@@ -1303,3 +1303,573 @@ SeqIO.write(cc, "ffSharedSpp.faa", "fasta")
 ## did that work? looks right. 
 
 ## check it tomorrow. 
+
+## its tomorrow. Just do a few sanity checks
+
+## so, for example, back in R
+
+library(phyloseq)
+
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+ffBiom = subset_samples(biom97, site == "French_flat")
+festuFFbiom = subset_samples(ffBiom, host == 'F. roemeri')
+danthFFbiom = subset_samples(ffBiom, host == 'D. californica')
+festuFFOTU = otu_table(festuFFbiom)
+festuFFOTUnoZero = festuFFOTU[rowSums(festuFFOTU) != 0]
+danthFFOTU = otu_table(danthFFbiom)
+danthFFOTUnoZero = danthFFOTU[rowSums(danthFFOTU) != 0]
+
+## some shared species examples would be:
+
+tail(festuFFOTUnoZero)
+
+festuFFOTUnoZero['OTU2:5grass',]
+###########
+danthFFOTUnoZero['OTU2:5grass',]
+## common in both.
+
+festuFFOTUnoZero['OTU2164:93grass',] ## just one observation
+
+danthFFOTUnoZero['OTU2164:93grass',] ## common, >half sites
+
+## and how species that are definitely not in both: 
+
+NOTsharedFestu <- !(rownames(festuFFOTUnoZero) %in% rownames(danthFFOTUnoZero))
+festuFFOTUnoZero[NOTsharedFestu,]
+festuFFOTUnoZero['OTU608:16grass']
+
+danthFFOTUnoZero['OTU608:16grass']
+danthFFOTU['OTU608:16grass'] ## yup, not in Danthonia
+
+## flip it
+
+NOTsharedDanth <- !(rownames(danthFFOTUnoZero) %in% rownames(festuFFOTUnoZero))
+
+danthFFOTUnoZero[NOTsharedDanth,]
+
+## two examples
+OTU3697:100grass
+OTU218:38grass
+
+
+festuFFOTUnoZero['OTU3697:100grass'] ## nope
+festuFFOTU['OTU3697:100grass'] ## all zeros
+
+festuFFOTUnoZero['OTU218:38grass'] ## nope
+festuFFOTU['OTU218:38grass'] ## all zeros
+
+## okay, looks good to me. sanity checked 
+
+## now we want to know, what are these fungi?
+
+## the database of choice is important...
+## should we use UNITE? or genbank?
+
+## this might actually be a time when low quality accessions 
+## may be of interest. 
+
+## start with UNITE, I guess. Time to update UNITE. I hate doing this. 
+
+## get it here:
+
+wget https://files.plutof.ut.ee/public/orig/6A/F9/6AF94919CCB48307734D6256CACA50AE1ECBC0839F644D4B661E3673525E41A4.tgz 
+
+## generally can get the latest at this website:
+https://unite.ut.ee/repository.php
+
+## we'll keep it here:
+uniteFile = ("/home/daniel/Documents/analyses/UNITE/"
+            "sh_general_release_s_10.05.2021/"
+            "sh_general_release_dynamic_s_10.05.2021.fasta")
+
+## make a local blastn database, in Bash:
+
+ln -s \
+/home/daniel/Documents/analyses/UNITE/sh_general_release_s_10.05.2021/sh_general_release_dynamic_s_10.05.2021.fasta \
+unite2021.fasta
+
+makeblastdb -in unite2021.fasta -dbtype nucl -logfile dberrors.txt
+
+## now, how get our fungi identified...
+
+blastn -query ffSharedSpp.faa -db unite2021.fasta -out FrenchFlatSharedSpeciesBlast.txt -num_descriptions 10 -num_alignments 3
+
+## at first glance, a lot of these are pretty typical endophytes (epicoccum, cladosporium, etc)
+
+## might be good to narrow this down to endophytes that are only found at french flat, and that are shared.
+
+## also, we should get Rusty Rodriguez's endophytes from stress environment, see if any are present here...
+
+## atcc's strain of Vishniacozyma victoriae comes from Antarctica? 
+
+## anyway, we need a first glance sheet, to see if anything sticks out:
+
+
+blastn -query ffSharedSpp.faa -db unite2021.fasta -out FrenchFlatSharedSpeciesBlast.txt -num_descriptions 10 -num_alignments 3
+
+blastn -query ffSharedSpp.faa -db unite2021.fasta -out FrenchFlatSharedSpeciesBlastQuickRead.csv -outfmt 10 -max_target_seqs 1
+
+## we want a nice header on that:
+sed '1 i\qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore' FrenchFlatSharedSpeciesBlastQuickRead.csv -i
+
+## that can be played with in Pandas.
+
+## but before we go there, should we repeat the above pipeline, but subset to just otus that 
+## are unique to FF?:
+
+## back in R
+
+library(phyloseq)
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+
+## we want only those otus that are:
+## 1) present in both hosts
+## 2) present only at french flat. 
+
+## first, get OTUs unique to french flat:
+ffBiom = subset_samples(biom97, site == "French_flat")
+## but we also need only those species that are in both danth and festu. We saved these
+## somewhere...
+
+
+## our non-FrenchFlat biomtable
+nonFFbiom = subset_samples(biom97, site != "French_flat")
+
+ffBiomOTU <- otu_table(ffBiom)
+
+##get rid of zeros
+dim(otu_table(ffBiomOTU)[rowSums(otu_table(ffBiomOTU)) != 0]) ## 1264
+
+
+ffOTUnoZeros <- ffBiomOTU[rowSums(ffBiomOTU) != 0]
+
+colSums(ffOTUnoZeros) ## no zero sites, of course
+
+nonFFbiomOTU <- otu_table(nonFFbiom)
+
+nonFFbiomNoZeros <- nonFFbiomOTU[rowSums(nonFFbiomOTU) != 0]
+
+dim(otu_table(nonFFbiom))
+
+dim(nonFFbiomNoZeros)
+## we lose ~200 species when we subset to nonFF sites. What are they?
+
+rownames(nonFFbiomNoZeros)
+
+rownames(ffOTUnoZeros)
+
+## but how do we subset to species found only at FF? and no where else?
+
+## should be this:
+uniqFFfilt <- !(rownames(ffOTUnoZeros) %in% rownames(nonFFbiomNoZeros))
+uniqFFotu <- ffOTUnoZeros[uniqFFfilt,]
+
+## but got to get out the shared species, which we figured out
+## above:
+
+sharedFFspecies <- scan("sharedFFspecies.txt", what='character')
+
+sum(sharedFFspecies %in% rownames(uniqFFotu)) ## only eight species. 
+
+## and they are?
+sharedOnlyFFfilt <- rownames(uniqFFotu) %in% sharedFFspecies 
+sharedOnlyFF <- uniqFFotu[sharedOnlyFFfilt,]
+
+for (i in rownames(sharedOnlyFF)){
+    print(i)
+    }
+
+## write it out:
+#sink('uniqueFFspeciesSharedBothHosts.txt')
+#    for (i in rownames(sharedOnlyFF)){cat(i);cat("\n")}
+#sink()
+
+## do we have a blast match for these?
+
+## OTU1879:6grass : no hits
+## OTU3919:89grass : Sporormiella maybe?, 96% match
+## OTU534:7grass : good hits (99%) to completely unidentified fungi
+## OTU284:8grass : good hits (99%) to completely unidentified fungi
+## OTU3455:8grass : weak hits (96%) to completely unidentified fungi
+## OTU870:9grass : weak hits (93%) to tremellales
+## OTU3897:98grass : weak hits (95%) to Rachicladosporium, black rock fungi
+## OTU2164:93grass : okay hits (97%) to completely unidentified fungi
+
+## great, so we have a slew of unidentified fungi
+
+## so what now? let's get out the sequences of the unique, shared FF species
+
+## dip into python:
+
+from Bio import SeqIO
+import re
+
+p =  re.compile('(OTU).*(grass)') 
+
+#with open('sharedFFspecies.txt', 'r') as sharedOTUs:
+with open('uniqueFFspeciesSharedBothHosts.txt', 'r') as sharedOTUs:
+    aa = sharedOTUs.readlines()
+    cleanedSharedSpp = [ p.match(i).group() for i in aa]
+
+
+cc = []
+bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
+for i in bb: 
+    if p.match(i.id).group() in cleanedSharedSpp:
+        i.name = p.match(i.id).group()
+        i.id = p.match(i.id).group()
+        i.description = ''
+        cc.append(i)
+
+SeqIO.write(cc, "uniqueFFspeciesSharedBothHosts.fasta", "fasta")
+
+## back to bash 
+
+## try to use rdp or sintax, get some idea of what these are. 
+
+## we'll use Edgar's sintax program. 
+
+## make a database:
+
+ln -s /home/daniel/Documents/analyses/UNITE/sh_general_release_s_10.05.2021/UNITE_usearch.fasta  UNITE_usearch.fasta
+
+usearch11 -makeudb_usearch UNITE_usearch.fasta -output UNITE_usearch.udb
+
+UNITEUS=/home/daniel/Documents/analyses/UNITE/sh_general_release_s_10.05.2021/UNITE_usearch.udb
+
+ls -l $UNITEUS
+
+## let's start with just the OTUs unique to FF, held by both hosts:
+
+usearch11 -sintax uniqueFFspeciesSharedBothHosts.fasta -db $UNITEUS \
+ -tabbedout uniqueFFspeciesSharedBothHosts.sintax \
+ -strand both -sintax_cutoff 0.8
+
+less uniqueFFspeciesSharedBothHosts.sintax
+
+## not a ton of new information
+
+## great. 
+
+## next steps. 
+
+###############################
+
+## we might want to see if we can quantify ecologically important species 
+## at the FF site 
+
+## two strategies come to mind: do an indicator species analysis, 
+## and transform/PCA the species matrix, check the loadings on the big axes
+
+## in R
+
+library(phyloseq)
+library(indicspecies)
+
+## indicator species:
+
+
+## need a sites as rows OTU table:
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+biom97_noCon = subset_samples(biom97, site != 'Control')
+
+biom97_noCon
+
+help(otu_table)
+
+biomNoConOTU <- t(otu_table(biom97_noCon))
+
+help(multipatt)
+
+## we want to use site as our partitioning variable
+
+
+sample_data(biom97_noCon)[1:5,1:5]
+
+siteNu = which( colnames(sample_data(biom97_noCon)) == "site")
+sitesDF <- sample_data(biom97_noCon)[,siteNu, drop=FALSE]
+
+biomNoConOTU
+
+## can we use this
+all(rownames(biomNoConOTU) == rownames(sitesDF))
+
+## great:
+
+sites <- sample_data(biom97_noCon)$site
+
+bothHostIndSpec <- multipatt(biomNoConOTU, sites, func = 'r.g', control=how(nperm=9999))
+
+bothHostIndSpec <- habIndSpp
+
+#save(bothHostIndSpec, "bothHostIndSpec.rda")
+
+load("bothHostIndSpec.rda")
+
+## and that takes forever
+
+## and done.
+
+## interesting, only one of the above unique species for FF appears as an indicator 
+## species: OTU1879:6grass
+
+## and it isn't that strong of an indicator. 
+
+## okay, so what do we do with this? can we extract just the FF-associated species?
+
+## look at the blast results for these:
+
+str(bothHostIndSpec)
+
+str(bothHostIndSpec$comb) ## not what we want...
+
+bothHostIndSpec$comb[1:5,]
+
+bothHostIndSpec$comb
+
+## think this is what we need:
+bothHostIndSpec$sign
+
+str(bothHostIndSpec$sign)
+
+stat p.value
+
+aa <- bothHostIndSpec$sign
+
+## don't want to fuck with this in R. get out to Pandas
+
+write.csv(aa, file="indSpecResults.csv")
+
+import numpy as np
+import pandas as pd
+from Bio import SeqIO
+import re
+
+## we want only those OTUS that have a hit for FF, and only FF
+
+indSpecResults = pd.read_csv("indSpecResults.csv", index_col=0)
+## those periods are fucking things up. 
+indSpecResults.columns = indSpecResults.columns.str.replace('s\.','')
+indSpecResults.columns = indSpecResults.columns.str.replace('p\.','p')
+## not sure what this is, but index is an important word here in pandas:
+indSpecResults.columns = indSpecResults.columns.str.replace('index','inde')
+
+## maybe better said this way:
+indSpecResults = pd.read_csv("indSpecResults.csv", index_col=0)
+indSpecResults.columns = (indSpecResults.columns
+                    .str.replace('s\.','')
+                    .str.replace('p\.','p')
+                    .str.replace('index','inde'))
+
+
+## we need to find the all zero rows for the other sites, isolate FF 
+aa = indSpecResults.query("French_flat > 0")
+bb = aa[["Hazel_Dell","Horse_Rock","Lower_Table","Roxy_Ann","Upper_Table","Upper_Weir","Whetstone","Whidbey"]]
+cc = ~bb.any(axis=1)
+onlyFF = aa[cc]
+onlyFFsig = onlyFF.query("pvalue < 0.05")[["stat","pvalue"]]
+onlyFFsig.sort_values(by=['stat','pvalue'], ascending=False, inplace=True)
+#onlyFFsig.to_csv('FFonlyIndSpec.csv')
+
+## looks good. Now what?
+
+## check our blast results with these
+
+## or maybe reblast, probably actually easier. 
+
+## need the sequences for these:
+
+FFonlyIndSpecNames = list(onlyFFsig.index.values)
+cc = []
+bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
+for i in bb: 
+    name = re.sub(';size=.*;','',i.name)
+    if name in FFonlyIndSpecNames:
+        print(name)
+        i.name = name
+        i.id = name
+        i.description = ''
+        cc.append(i)
+
+## write out:
+#SeqIO.write(cc, "FFindSpecies.fasta", "fasta")
+
+blastn -query FFindSpecies.fasta -db unite2021.fasta -out FFindSpeciesBlast.txt -num_descriptions 10 -num_alignments 5
+blastn -query FFindSpecies.fasta -db unite2021.fasta -out FFindSpeciesBlastQuickRead.csv -outfmt 10 -max_target_seqs 1
+
+sed '1 i\qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore' FFindSpeciesBlastQuickRead.csv -i
+
+libreoffice --calc FFindSpeciesBlastQuickRead.csv &
+
+## welp, a lot of uncertainty there, but at least there are fewer complete blanks. 
+## a whole lot of these point to the same species hypo in UNITE, Colletotrichum graminicola:
+
+Colletotrichum_graminicola|DQ126180|SH2699426.08FU
+
+## so the plan:
+
+## check to see how many of these indicators are in both host species
+
+## group them and make trees - at least colletotrichum, and perhaps the tremallales and preussia groups
+
+##### check indicators for presence in both hosts ######
+
+## back in R
+
+library(phyloseq)
+library(indicspecies)
+
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+biom97_noCon = subset_samples(biom97, site != 'Control')
+
+FFonlyIndSpec <- as.character(read.csv('FFonlyIndSpec.csv')[,1])
+
+FFonlyIndSpec
+
+## how to check these for membership in both hosts? 
+
+biom97_noCon
+
+head(sample_data(biom97_noCon))
+
+biom97_FF = subset_samples(biom97, site == 'French_flat')
+
+biom97_FF_festu = subset_samples(biom97_FF, host == 'F. roemeri')
+biom97_FF_danth = subset_samples(biom97_FF, host == 'D. californica')
+
+aa <- otu_table(biom97_FF_festu)
+otu_FF_festu_n0 <- aa[rowSums(aa) != 0,]
+
+aa <- otu_table(biom97_FF_danth)
+otu_FF_danth_n0 <- aa[rowSums(aa) != 0,]
+
+##  
+
+inFestu <- FFonlyIndSpec %in% rownames(otu_FF_festu_n0)
+inDanth <- FFonlyIndSpec %in% rownames(otu_FF_danth_n0)
+
+FFonlyIndSpec
+
+FFindHosts <- as.data.frame(cbind(inFestu, inDanth), row.names=FFonlyIndSpec)
+
+## how many of these indicators are in both species?
+sum(rowSums(FFindHosts) == 2) ## 29
+dim(FFindHosts) ## out of 52
+
+## retain these, find out what they are:
+aa <- rownames(FFindHosts[rowSums(FFindHosts) == 2,])
+
+sink('FFindSpecBothHosts.txt')
+    for (i in aa){cat(i);cat('\n')}
+sink()
+
+## now find out what these are, back to python.
+
+aa = pd.read_csv('FFindSpecBothHosts.txt', header=None).iloc[:,0]
+FFindSpecBothHostsNames = list(aa)
+
+cc = []
+bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
+for i in bb: 
+    name = re.sub(';size=.*;','',i.name)
+    if name in FFindSpecBothHostsNames:
+        print(name)
+        print(i.name)
+        i.name = name
+        i.id = name
+        i.description = ''
+        cc.append(i)
+
+
+## write out:
+SeqIO.write(cc, "FFindSpeciesBothHosts.fasta", "fasta")
+
+## now blast:
+
+blastn -query FFindSpeciesBothHosts.fasta -db unite2021.fasta -out FFindSpeciesBothHostsBlast.txt -num_descriptions 10 -num_alignments 10
+blastn -query FFindSpeciesBothHosts.fasta -db unite2021.fasta -out FFindSpeciesBothHostsBlastQuickRead.csv -outfmt 10 -max_target_seqs 1
+
+sed '1 i\qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore' FFindSpeciesBothHostsBlastQuickRead.csv -i
+
+libreoffice --calc FFindSpeciesBothHostsBlastQuickRead.csv &
+
+## so several of the colletotrichums are in both hosts. 
+## and several are found in only one host, I therefore deduce
+## Are any colletotrichums unique to FF? 
+## doesn't look like it. So why are they important? 
+## perhaps due to read abundances, which makes me nervous,
+## cuz I don't trust these read abundances
+## also splitting may have occurred, understating
+## the importance of colle
+## we need a better overview
+
+## okay, so we need a list of otus that are possible
+## colletotrichums, which sites they were found in, 
+## and which hosts, and the relative abundances. 
+
+## first, how do we get every OTU that matched to a 
+## colletrichum?
+
+## as a wide net, first pass this would be in graham's
+## taxonomy table:
+
+aa = tax_table(biom97)
+colnames(aa)=c('kingdom','phylum','class','order','family','genus','species')
+
+
+aa = as.data.frame(aa@.Data)
+
+aa[1:3,1:3]
+
+write.csv(aa, file='grahamTaxonomyTable.csv')
+
+##### let's go to pandas for this
+
+aa = pd.read_csv('grahamTaxonomyTable.csv', index_col = 0)
+
+aa.iloc[0:2,0:6]
+
+## get rid of unnecessary prefix tags:
+
+## for example
+bb = pd.Series(['k__Fungi','p__Ascomycota','c__Sordariomycetes','o__Hypocreales','f__Hypocreales_fam_Incertae_sedis','g__Sarocladium'])
+bb.str.replace("[kpcofgs]__","") 
+
+## we really just need genus:
+
+aa.query("genus == 'g__Colletotrichum'")
+
+aa.query("genus == 'g__Glomerella'")
+
+
+## huh, none of these are graminicola. Weird. 
+
+genera = aa.genus.str.replace("[g]__","")
+
+genera == 
+
+
+for label, content in aa.iteritems():
+    #print(label)
+    print(content)
+
+## weird. Graham's results don't resemble mine?
+## there are no C. graminicola?
+
+## the following top-blasted to colletotrichum graminicola for me, at around 97% identity:
+
+aa.loc['OTU1028:13grass'] ## close, Glomerella in grahams tax table, but no species
+aa.loc['OTU1202:12grass'] ## also Glomerella in grahams tax table, no species
+aa.loc['OTU1265:13grass'] ## also Glomerella in grahams tax table, no species
+aa.loc['OTU1468:13grass'] ## also Glomerella in grahams tax table, no species
+
+## so it seems like maybe genus isn't where to start here, 
+## or we include glomerella everywhere we want to look for Colletotrichum, 
+## since they are +/- synonyms
+## or maybe best, go family level here and assume its all colletotrichum:
+
+aa.query("family == 'f__Glomerellaceae'")
+
+FFindSpecBothHosts = pd.read_csv('FFindSpecBothHosts.txt', header=None).iloc[:,0]
+
+

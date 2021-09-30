@@ -1,2 +1,4 @@
 *.sw*
 .ipynb_checkpoints/
+.~lock*
+unite2021.fasta.n*
