@@ -1,0 +1,1174 @@
+
+ Multilevel pattern analysis
+ ---------------------------
+
+ Association function: r.g
+ Significance level (alpha): 0.05
+
+ Total number of species: 3670
+ Selected number of species: 847 
+ Number of species associated to 1 group: 465 
+ Number of species associated to 2 groups: 210 
+ Number of species associated to 3 groups: 83 
+ Number of species associated to 4 groups: 55 
+ Number of species associated to 5 groups: 21 
+ Number of species associated to 6 groups: 9 
+ Number of species associated to 7 groups: 4 
+ Number of species associated to 8 groups: 0 
+
+ List of species associated to each combination: 
+
+ Group French_flat  #sps.  70 
+                  stat p.value    
+OTU64:5grass     0.678  0.0002 ***
+OTU876:89grass   0.588  0.0002 ***
+OTU1028:13grass  0.550  0.0002 ***
+OTU3247:106grass 0.534  0.0004 ***
+OTU1159:26grass  0.528  0.0002 ***
+OTU1127:93grass  0.526  0.0002 ***
+OTU1153:94grass  0.525  0.0002 ***
+OTU1202:12grass  0.521  0.0002 ***
+OTU865:5grass    0.498  0.0004 ***
+OTU1265:13grass  0.496  0.0002 ***
+OTU808:5grass    0.485  0.0002 ***
+OTU175:6grass    0.474  0.0002 ***
+OTU620:13grass   0.470  0.0004 ***
+OTU524:7grass    0.466  0.0016 ** 
+OTU2422:8grass   0.461  0.0004 ***
+OTU2023:5grass   0.455  0.0006 ***
+OTU2558:89grass  0.453  0.0006 ***
+OTU2526:13grass  0.445  0.0008 ***
+OTU1852:89grass  0.436  0.0012 ** 
+OTU647:8grass    0.434  0.0018 ** 
+OTU3435:6grass   0.426  0.0018 ** 
+OTU1349:5grass   0.421  0.0008 ***
+OTU3285:5grass   0.416  0.0020 ** 
+OTU2294:89grass  0.413  0.0032 ** 
+OTU2384:7grass   0.411  0.0034 ** 
+OTU2164:93grass  0.409  0.0028 ** 
+OTU3267:16grass  0.400  0.0046 ** 
+OTU43:5grass     0.390  0.0042 ** 
+OTU2441:91grass  0.390  0.0030 ** 
+OTU1760:9grass   0.388  0.0058 ** 
+OTU227:6grass    0.385  0.0028 ** 
+OTU240:5grass    0.382  0.0064 ** 
+OTU1001:9grass   0.380  0.0064 ** 
+OTU2053:5grass   0.379  0.0082 ** 
+OTU206:15grass   0.378  0.0048 ** 
+OTU445:7grass    0.374  0.0054 ** 
+OTU3169:13grass  0.374  0.0058 ** 
+OTU303:5grass    0.373  0.0090 ** 
+OTU2805:88grass  0.368  0.0088 ** 
+OTU2941:5grass   0.367  0.0092 ** 
+OTU3608:9grass   0.365  0.0040 ** 
+OTU3871:13grass  0.364  0.0052 ** 
+OTU2421:89grass  0.359  0.0106 *  
+OTU500:6grass    0.357  0.0176 *  
+OTU2523:28grass  0.354  0.0094 ** 
+OTU3720:13grass  0.353  0.0104 *  
+OTU468:13grass   0.351  0.0112 *  
+OTU694:97grass   0.345  0.0092 ** 
+OTU104:53grass   0.341  0.0176 *  
+OTU2107:5grass   0.335  0.0480 *  
+OTU2895:90grass  0.333  0.0472 *  
+OTU490:16grass   0.332  0.0440 *  
+OTU1709:93grass  0.332  0.0172 *  
+OTU817:98grass   0.332  0.0414 *  
+OTU1597:93grass  0.330  0.0382 *  
+OTU625:10grass   0.328  0.0358 *  
+OTU1247:96grass  0.323  0.0244 *  
+OTU276:5grass    0.320  0.0460 *  
+OTU873:16grass   0.319  0.0280 *  
+OTU586:26grass   0.319  0.0466 *  
+OTU999:6grass    0.318  0.0432 *  
+OTU3826:89grass  0.309  0.0382 *  
+OTU774:7grass    0.309  0.0486 *  
+OTU1510:9grass   0.307  0.0384 *  
+OTU3866:96grass  0.302  0.0334 *  
+OTU2797:107grass 0.302  0.0442 *  
+OTU90:13grass    0.301  0.0380 *  
+OTU2060:6grass   0.300  0.0432 *  
+OTU2002:7grass   0.296  0.0410 *  
+OTU3461:89grass  0.286  0.0418 *  
+
+ Group Hazel_Dell  #sps.  32 
+                  stat p.value    
+OTU71:26grass    0.502  0.0002 ***
+OTU97:6grass     0.481  0.0006 ***
+OTU124:6grass    0.480  0.0002 ***
+OTU53:8grass     0.462  0.0002 ***
+OTU282:126grass  0.395  0.0076 ** 
+OTU513:65grass   0.391  0.0034 ** 
+OTU568:127grass  0.386  0.0088 ** 
+OTU184:18grass   0.372  0.0104 *  
+OTU260:26grass   0.368  0.0034 ** 
+OTU1507:126grass 0.367  0.0104 *  
+OTU81:17grass    0.361  0.0114 *  
+OTU945:126grass  0.361  0.0140 *  
+OTU885:56grass   0.354  0.0120 *  
+OTU1191:126grass 0.349  0.0258 *  
+OTU664:36grass   0.346  0.0246 *  
+OTU101:8grass    0.346  0.0160 *  
+OTU3430:125grass 0.346  0.0092 ** 
+OTU427:11grass   0.337  0.0184 *  
+OTU700:129grass  0.333  0.0192 *  
+OTU1582:135grass 0.333  0.0320 *  
+OTU2785:132grass 0.330  0.0448 *  
+OTU2680:125grass 0.326  0.0448 *  
+OTU588:135grass  0.324  0.0316 *  
+OTU458:16grass   0.316  0.0278 *  
+OTU526:29grass   0.308  0.0386 *  
+OTU3774:126grass 0.308  0.0410 *  
+OTU985:125grass  0.308  0.0416 *  
+OTU2329:135grass 0.307  0.0290 *  
+OTU815:85grass   0.302  0.0448 *  
+OTU2355:125grass 0.294  0.0416 *  
+OTU2702:125grass 0.287  0.0448 *  
+OTU1312:30grass  0.284  0.0400 *  
+
+ Group Horse_Rock  #sps.  39 
+                  stat p.value    
+OTU1453:120grass 0.559  0.0002 ***
+OTU671:133grass  0.553  0.0002 ***
+OTU1391:138grass 0.513  0.0002 ***
+OTU1467:137grass 0.511  0.0002 ***
+OTU1255:128grass 0.499  0.0002 ***
+OTU1131:138grass 0.476  0.0002 ***
+OTU819:42grass   0.437  0.0012 ** 
+OTU405:31grass   0.434  0.0010 ***
+OTU246:26grass   0.426  0.0008 ***
+OTU712:43grass   0.420  0.0004 ***
+OTU698:25grass   0.415  0.0016 ** 
+OTU1326:158grass 0.412  0.0018 ** 
+OTU521:19grass   0.391  0.0016 ** 
+OTU502:20grass   0.384  0.0034 ** 
+OTU3490:143grass 0.367  0.0072 ** 
+OTU296:81grass   0.354  0.0108 *  
+OTU1142:136grass 0.343  0.0156 *  
+OTU2268:153grass 0.341  0.0172 *  
+OTU677:138grass  0.340  0.0232 *  
+OTU1269:142grass 0.340  0.0246 *  
+OTU1066:89grass  0.339  0.0156 *  
+OTU587:41grass   0.334  0.0198 *  
+OTU377:133grass  0.327  0.0292 *  
+OTU2459:137grass 0.325  0.0398 *  
+OTU3074:145grass 0.309  0.0414 *  
+OTU3170:145grass 0.306  0.0402 *  
+OTU261:18grass   0.305  0.0474 *  
+OTU217:7grass    0.305  0.0296 *  
+OTU347:48grass   0.295  0.0492 *  
+OTU1351:137grass 0.280  0.0468 *  
+OTU2285:137grass 0.279  0.0470 *  
+OTU899:139grass  0.279  0.0456 *  
+OTU2134:46grass  0.278  0.0472 *  
+OTU2560:143grass 0.277  0.0290 *  
+OTU1718:143grass 0.273  0.0474 *  
+OTU702:41grass   0.272  0.0484 *  
+OTU1266:137grass 0.270  0.0484 *  
+OTU3025:45grass  0.264  0.0496 *  
+OTU2756:147grass 0.260  0.0294 *  
+
+ Group Lower_Table  #sps.  27 
+                  stat p.value    
+OTU132:11grass   0.701  0.0002 ***
+OTU78:7grass     0.562  0.0002 ***
+OTU517:109grass  0.540  0.0002 ***
+OTU176:25grass   0.537  0.0002 ***
+OTU3812:115grass 0.530  0.0002 ***
+OTU2412:104grass 0.502  0.0004 ***
+OTU2711:25grass  0.491  0.0006 ***
+OTU1019:118grass 0.466  0.0016 ** 
+OTU121:69grass   0.440  0.0002 ***
+OTU1208:116grass 0.409  0.0026 ** 
+OTU1414:119grass 0.390  0.0028 ** 
+OTU2223:118grass 0.388  0.0256 *  
+OTU1614:118grass 0.388  0.0256 *  
+OTU1431:118grass 0.388  0.0256 *  
+OTU277:18grass   0.388  0.0050 ** 
+OTU1538:118grass 0.388  0.0256 *  
+OTU1489:118grass 0.383  0.0256 *  
+OTU1539:118grass 0.382  0.0256 *  
+OTU424:26grass   0.380  0.0056 ** 
+OTU470:118grass  0.377  0.0134 *  
+OTU2439:116grass 0.377  0.0074 ** 
+OTU1116:114grass 0.376  0.0300 *  
+OTU223:24grass   0.370  0.0052 ** 
+OTU649:123grass  0.351  0.0292 *  
+OTU24:5grass     0.337  0.0122 *  
+OTU528:29grass   0.317  0.0366 *  
+OTU2357:85grass  0.286  0.0286 *  
+
+ Group Roxy_Ann  #sps.  23 
+                 stat p.value    
+OTU2286:86grass 0.562  0.0002 ***
+OTU1704:82grass 0.506  0.0004 ***
+OTU171:7grass   0.445  0.0024 ** 
+OTU2170:82grass 0.431  0.0012 ** 
+OTU2261:79grass 0.431  0.0004 ***
+OTU907:82grass  0.388  0.0276 *  
+OTU2374:82grass 0.388  0.0276 *  
+OTU1608:25grass 0.388  0.0276 *  
+OTU1196:82grass 0.388  0.0276 *  
+OTU1285:82grass 0.387  0.0276 *  
+OTU3004:81grass 0.387  0.0310 *  
+OTU1753:82grass 0.386  0.0276 *  
+OTU579:77grass  0.385  0.0282 *  
+OTU2566:84grass 0.374  0.0272 *  
+OTU2729:19grass 0.373  0.0072 ** 
+OTU1676:80grass 0.346  0.0320 *  
+OTU828:82grass  0.343  0.0228 *  
+OTU713:88grass  0.335  0.0236 *  
+OTU3156:80grass 0.321  0.0314 *  
+OTU3724:77grass 0.316  0.0298 *  
+OTU3027:87grass 0.311  0.0272 *  
+OTU1049:6grass  0.293  0.0444 *  
+OTU2588:79grass 0.291  0.0282 *  
+
+ Group Upper_Table  #sps.  31 
+                 stat p.value    
+OTU581:18grass  0.552  0.0002 ***
+OTU892:17grass  0.518  0.0002 ***
+OTU3332:18grass 0.479  0.0002 ***
+OTU398:19grass  0.443  0.0010 ***
+OTU1048:25grass 0.434  0.0026 ** 
+OTU2012:18grass 0.406  0.0016 ** 
+OTU3771:23grass 0.392  0.0042 ** 
+OTU197:15grass  0.390  0.0072 ** 
+OTU1456:22grass 0.389  0.0298 *  
+OTU1141:22grass 0.388  0.0298 *  
+OTU980:22grass  0.388  0.0298 *  
+OTU1218:22grass 0.388  0.0298 *  
+OTU3847:18grass 0.388  0.0264 *  
+OTU969:22grass  0.388  0.0298 *  
+OTU1150:26grass 0.387  0.0276 *  
+OTU716:19grass  0.385  0.0312 *  
+OTU3262:26grass 0.383  0.0284 *  
+OTU1540:22grass 0.383  0.0298 *  
+OTU2375:22grass 0.377  0.0298 *  
+OTU2173:27grass 0.374  0.0090 ** 
+OTU1151:20grass 0.371  0.0256 *  
+OTU2225:22grass 0.368  0.0034 ** 
+OTU3645:26grass 0.365  0.0120 *  
+OTU2014:22grass 0.359  0.0298 *  
+OTU1836:22grass 0.357  0.0298 *  
+OTU1046:20grass 0.348  0.0288 *  
+OTU2717:23grass 0.341  0.0298 *  
+OTU997:22grass  0.325  0.0146 *  
+OTU472:5grass   0.318  0.0478 *  
+OTU1901:26grass 0.310  0.0276 *  
+OTU2491:23grass 0.285  0.0380 *  
+
+ Group Upper_Weir  #sps.  141 
+                  stat p.value    
+OTU280:18grass   0.853  0.0002 ***
+OTU630:41grass   0.800  0.0002 ***
+OTU2318:55grass  0.800  0.0002 ***
+OTU2851:54grass  0.800  0.0002 ***
+OTU571:41grass   0.786  0.0002 ***
+OTU254:18grass   0.766  0.0002 ***
+OTU2:5grass      0.736  0.0002 ***
+OTU558:41grass   0.713  0.0002 ***
+OTU63:5grass     0.677  0.0002 ***
+OTU1601:57grass  0.648  0.0002 ***
+OTU800:42grass   0.631  0.0002 ***
+OTU200:5grass    0.623  0.0002 ***
+OTU30:5grass     0.619  0.0002 ***
+OTU1132:46grass  0.613  0.0002 ***
+OTU548:5grass    0.596  0.0002 ***
+OTU186:6grass    0.589  0.0002 ***
+OTU1023:41grass  0.586  0.0002 ***
+OTU1692:48grass  0.583  0.0002 ***
+OTU451:26grass   0.572  0.0002 ***
+OTU559:26grass   0.568  0.0002 ***
+OTU1346:54grass  0.568  0.0004 ***
+OTU2420:60grass  0.564  0.0002 ***
+OTU1009:26grass  0.551  0.0002 ***
+OTU1633:54grass  0.551  0.0004 ***
+OTU1424:54grass  0.550  0.0002 ***
+OTU1915:53grass  0.548  0.0002 ***
+OTU1856:42grass  0.543  0.0004 ***
+OTU836:44grass   0.530  0.0002 ***
+OTU1648:42grass  0.529  0.0002 ***
+OTU1570:43grass  0.528  0.0002 ***
+OTU2353:54grass  0.527  0.0002 ***
+OTU142:8grass    0.527  0.0002 ***
+OTU523:26grass   0.524  0.0002 ***
+OTU919:42grass   0.524  0.0002 ***
+OTU2039:48grass  0.523  0.0006 ***
+OTU1211:26grass  0.513  0.0002 ***
+OTU2238:58grass  0.511  0.0002 ***
+OTU2682:28grass  0.508  0.0002 ***
+OTU371:5grass    0.507  0.0004 ***
+OTU1293:48grass  0.503  0.0002 ***
+OTU1723:56grass  0.502  0.0002 ***
+OTU2277:53grass  0.499  0.0002 ***
+OTU2241:45grass  0.491  0.0002 ***
+OTU2359:141grass 0.484  0.0004 ***
+OTU2036:45grass  0.483  0.0008 ***
+OTU806:77grass   0.477  0.0002 ***
+OTU3666:56grass  0.475  0.0026 ** 
+OTU3723:28grass  0.474  0.0002 ***
+OTU1776:142grass 0.472  0.0012 ** 
+OTU1262:53grass  0.465  0.0010 ***
+OTU70:42grass    0.465  0.0002 ***
+OTU1184:50grass  0.461  0.0006 ***
+OTU2390:54grass  0.459  0.0010 ***
+OTU2464:40grass  0.457  0.0002 ***
+OTU2508:60grass  0.444  0.0014 ** 
+OTU1700:30grass  0.442  0.0006 ***
+OTU355:26grass   0.441  0.0010 ***
+OTU1070:31grass  0.438  0.0016 ** 
+OTU673:38grass   0.438  0.0006 ***
+OTU2312:49grass  0.436  0.0010 ***
+OTU942:45grass   0.433  0.0008 ***
+OTU3129:56grass  0.426  0.0010 ***
+OTU2404:48grass  0.416  0.0024 ** 
+OTU1783:43grass  0.414  0.0030 ** 
+OTU1596:26grass  0.413  0.0032 ** 
+OTU3205:53grass  0.409  0.0032 ** 
+OTU971:44grass   0.404  0.0050 ** 
+OTU1396:45grass  0.403  0.0048 ** 
+OTU2394:58grass  0.394  0.0020 ** 
+OTU1958:60grass  0.388  0.0280 *  
+OTU3619:58grass  0.388  0.0256 *  
+OTU1517:44grass  0.388  0.0058 ** 
+OTU2778:58grass  0.387  0.0256 *  
+OTU1313:41grass  0.386  0.0062 ** 
+OTU1465:48grass  0.386  0.0178 *  
+OTU1392:58grass  0.386  0.0256 *  
+OTU3838:62grass  0.386  0.0316 *  
+OTU1263:60grass  0.385  0.0220 *  
+OTU2132:48grass  0.385  0.0280 *  
+OTU2477:58grass  0.382  0.0170 *  
+OTU1974:42grass  0.382  0.0030 ** 
+OTU1701:41grass  0.382  0.0050 ** 
+OTU3092:55grass  0.382  0.0286 *  
+OTU2585:60grass  0.381  0.0258 *  
+OTU2046:55grass  0.380  0.0152 *  
+OTU3669:62grass  0.379  0.0316 *  
+OTU2137:41grass  0.379  0.0052 ** 
+OTU3755:53grass  0.379  0.0182 *  
+OTU2650:50grass  0.378  0.0182 *  
+OTU3806:41grass  0.378  0.0322 *  
+OTU1681:46grass  0.378  0.0134 *  
+OTU818:5grass    0.376  0.0072 ** 
+OTU2535:49grass  0.374  0.0024 ** 
+OTU2787:64grass  0.373  0.0220 *  
+OTU1123:44grass  0.372  0.0178 *  
+OTU567:5grass    0.372  0.0088 ** 
+OTU2634:61grass  0.370  0.0312 *  
+OTU174:5grass    0.369  0.0040 ** 
+OTU1962:43grass  0.367  0.0174 *  
+OTU1457:26grass  0.366  0.0326 *  
+OTU1393:53grass  0.366  0.0302 *  
+OTU1404:98grass  0.365  0.0082 ** 
+OTU2486:45grass  0.363  0.0188 *  
+OTU2050:48grass  0.363  0.0082 ** 
+OTU2726:55grass  0.362  0.0076 ** 
+OTU2331:69grass  0.359  0.0124 *  
+OTU2095:45grass  0.358  0.0212 *  
+OTU1812:56grass  0.356  0.0122 *  
+OTU3359:63grass  0.356  0.0284 *  
+OTU1072:36grass  0.355  0.0170 *  
+OTU375:13grass   0.355  0.0070 ** 
+OTU3695:53grass  0.355  0.0302 *  
+OTU549:43grass   0.355  0.0064 ** 
+OTU2356:55grass  0.355  0.0116 *  
+OTU2899:59grass  0.355  0.0018 ** 
+OTU3298:55grass  0.354  0.0286 *  
+OTU1166:48grass  0.350  0.0204 *  
+OTU2005:5grass   0.348  0.0284 *  
+OTU611:44grass   0.347  0.0170 *  
+OTU2358:11grass  0.346  0.0176 *  
+OTU2935:56grass  0.341  0.0274 *  
+OTU2732:22grass  0.341  0.0250 *  
+OTU3375:56grass  0.338  0.0282 *  
+OTU847:26grass   0.335  0.0286 *  
+OTU1450:41grass  0.335  0.0206 *  
+OTU1358:150grass 0.335  0.0388 *  
+OTU1679:46grass  0.333  0.0200 *  
+OTU782:42grass   0.333  0.0398 *  
+OTU334:18grass   0.332  0.0118 *  
+OTU1748:26grass  0.327  0.0380 *  
+OTU2700:53grass  0.326  0.0248 *  
+OTU2496:61grass  0.322  0.0294 *  
+OTU3030:48grass  0.321  0.0280 *  
+OTU1711:26grass  0.317  0.0482 *  
+OTU2640:11grass  0.312  0.0310 *  
+OTU3714:60grass  0.310  0.0242 *  
+OTU1514:44grass  0.309  0.0444 *  
+OTU578:32grass   0.301  0.0494 *  
+OTU2948:45grass  0.294  0.0260 *  
+OTU1101:26grass  0.286  0.0304 *  
+OTU1832:54grass  0.277  0.0218 *  
+
+ Group Whetstone  #sps.  32 
+                  stat p.value    
+OTU119:41grass   0.863  0.0002 ***
+OTU167:20grass   0.668  0.0002 ***
+OTU268:21grass   0.651  0.0002 ***
+OTU745:104grass  0.549  0.0002 ***
+OTU103:5grass    0.540  0.0002 ***
+OTU3416:149grass 0.526  0.0002 ***
+OTU3078:102grass 0.471  0.0024 ** 
+OTU589:104grass  0.470  0.0018 ** 
+OTU214:24grass   0.457  0.0006 ***
+OTU658:106grass  0.432  0.0026 ** 
+OTU639:10grass   0.430  0.0030 ** 
+OTU2806:159grass 0.422  0.0014 ** 
+OTU843:103grass  0.389  0.0280 *  
+OTU858:23grass   0.389  0.0334 *  
+OTU1033:106grass 0.388  0.0334 *  
+OTU1301:106grass 0.388  0.0334 *  
+OTU1092:106grass 0.388  0.0334 *  
+OTU2564:112grass 0.387  0.0286 *  
+OTU788:111grass  0.386  0.0284 *  
+OTU2231:106grass 0.385  0.0334 *  
+OTU1203:103grass 0.382  0.0302 *  
+OTU3017:106grass 0.372  0.0334 *  
+OTU385:95grass   0.372  0.0088 ** 
+OTU849:109grass  0.363  0.0280 *  
+OTU7:5grass      0.361  0.0044 ** 
+OTU2245:18grass  0.358  0.0038 ** 
+OTU2612:101grass 0.344  0.0026 ** 
+OTU397:19grass   0.332  0.0262 *  
+OTU2018:102grass 0.304  0.0316 *  
+OTU2801:106grass 0.292  0.0334 *  
+OTU2451:106grass 0.285  0.0334 *  
+OTU2617:101grass 0.280  0.0274 *  
+
+ Group Whidbey  #sps.  70 
+                  stat p.value    
+OTU333:7grass    0.612  0.0002 ***
+OTU1840:25grass  0.549  0.0002 ***
+OTU463:150grass  0.543  0.0002 ***
+OTU247:26grass   0.540  0.0002 ***
+OTU409:69grass   0.539  0.0002 ***
+OTU2315:36grass  0.534  0.0002 ***
+OTU82:15grass    0.534  0.0002 ***
+OTU3417:150grass 0.525  0.0002 ***
+OTU1719:36grass  0.514  0.0004 ***
+OTU1714:157grass 0.510  0.0002 ***
+OTU501:150grass  0.497  0.0002 ***
+OTU1923:24grass  0.485  0.0004 ***
+OTU1898:36grass  0.481  0.0002 ***
+OTU1100:150grass 0.480  0.0004 ***
+OTU2461:156grass 0.474  0.0002 ***
+OTU435:9grass    0.473  0.0004 ***
+OTU2827:93grass  0.467  0.0002 ***
+OTU1925:149grass 0.459  0.0004 ***
+OTU2540:32grass  0.455  0.0002 ***
+OTU1838:156grass 0.440  0.0012 ** 
+OTU2758:159grass 0.431  0.0002 ***
+OTU1674:36grass  0.429  0.0010 ***
+OTU1499:65grass  0.426  0.0014 ** 
+OTU1410:56grass  0.424  0.0002 ***
+OTU2143:28grass  0.419  0.0006 ***
+OTU2428:65grass  0.417  0.0006 ***
+OTU929:31grass   0.416  0.0016 ** 
+OTU1387:25grass  0.415  0.0020 ** 
+OTU245:6grass    0.410  0.0028 ** 
+OTU3304:26grass  0.408  0.0012 ** 
+OTU1550:18grass  0.400  0.0006 ***
+OTU204:53grass   0.398  0.0068 ** 
+OTU2128:123grass 0.395  0.0030 ** 
+OTU727:39grass   0.392  0.0070 ** 
+OTU1744:38grass  0.389  0.0042 ** 
+OTU379:30grass   0.384  0.0064 ** 
+OTU1746:148grass 0.382  0.0040 ** 
+OTU601:12grass   0.380  0.0054 ** 
+OTU1209:33grass  0.375  0.0066 ** 
+OTU1745:36grass  0.374  0.0060 ** 
+OTU3316:151grass 0.368  0.0060 ** 
+OTU848:69grass   0.367  0.0074 ** 
+OTU1502:69grass  0.366  0.0052 ** 
+OTU1506:150grass 0.363  0.0092 ** 
+OTU233:26grass   0.360  0.0068 ** 
+OTU316:26grass   0.358  0.0038 ** 
+OTU838:153grass  0.358  0.0114 *  
+OTU3486:154grass 0.354  0.0164 *  
+OTU852:66grass   0.352  0.0224 *  
+OTU1469:152grass 0.352  0.0086 ** 
+OTU411:24grass   0.351  0.0086 ** 
+OTU2320:154grass 0.347  0.0112 *  
+OTU465:152grass  0.333  0.0274 *  
+OTU569:142grass  0.329  0.0308 *  
+OTU1553:24grass  0.327  0.0194 *  
+OTU546:30grass   0.322  0.0398 *  
+OTU1720:38grass  0.320  0.0338 *  
+OTU2721:150grass 0.319  0.0464 *  
+OTU2658:18grass  0.319  0.0320 *  
+OTU3717:29grass  0.312  0.0330 *  
+OTU1078:33grass  0.312  0.0414 *  
+OTU2336:156grass 0.310  0.0466 *  
+OTU785:37grass   0.310  0.0486 *  
+OTU1617:146grass 0.310  0.0284 *  
+OTU894:148grass  0.306  0.0428 *  
+OTU410:49grass   0.305  0.0400 *  
+OTU3266:36grass  0.305  0.0406 *  
+OTU1149:140grass 0.304  0.0396 *  
+OTU2725:87grass  0.303  0.0370 *  
+OTU3453:157grass 0.283  0.0254 *  
+
+ Group French_flat+Horse_Rock  #sps.  3 
+                 stat p.value  
+OTU400:9grass   0.322  0.0268 *
+OTU2823:13grass 0.312  0.0404 *
+OTU690:13grass  0.301  0.0488 *
+
+ Group French_flat+Lower_Table  #sps.  1 
+                stat p.value   
+OTU545:36grass 0.377   0.006 **
+
+ Group French_flat+Roxy_Ann  #sps.  7 
+                 stat p.value    
+OTU3469:8grass  0.449  0.0008 ***
+OTU2800:88grass 0.444  0.0010 ***
+OTU1426:93grass 0.357  0.0082 ** 
+OTU301:6grass   0.332  0.0168 *  
+OTU507:6grass   0.328  0.0252 *  
+OTU3768:89grass 0.306  0.0490 *  
+OTU1715:5grass  0.299  0.0480 *  
+
+ Group French_flat+Upper_Table  #sps.  3 
+                 stat p.value    
+OTU1171:13grass 0.517  0.0002 ***
+OTU1910:91grass 0.349  0.0092 ** 
+OTU3158:89grass 0.316  0.0350 *  
+
+ Group French_flat+Whetstone  #sps.  9 
+                  stat p.value    
+OTU60:5grass     0.674  0.0002 ***
+OTU144:6grass    0.498  0.0002 ***
+OTU55:7grass     0.387  0.0012 ** 
+OTU1484:93grass  0.376  0.0054 ** 
+OTU1657:109grass 0.358  0.0104 *  
+OTU342:7grass    0.351  0.0108 *  
+OTU2322:94grass  0.332  0.0182 *  
+OTU2351:163grass 0.308  0.0376 *  
+OTU2429:106grass 0.303  0.0476 *  
+
+ Group French_flat+Whidbey  #sps.  2 
+                 stat p.value  
+OTU3366:22grass 0.330  0.0150 *
+OTU275:25grass  0.302  0.0434 *
+
+ Group Hazel_Dell+Horse_Rock  #sps.  4 
+                stat p.value    
+OTU112:31grass 0.451  0.0004 ***
+OTU203:9grass  0.320  0.0226 *  
+OTU153:49grass 0.311  0.0354 *  
+OTU349:41grass 0.311  0.0308 *  
+
+ Group Hazel_Dell+Roxy_Ann  #sps.  1 
+               stat p.value   
+OTU499:34grass 0.35  0.0092 **
+
+ Group Hazel_Dell+Upper_Table  #sps.  1 
+                stat p.value  
+OTU238:57grass 0.329  0.0186 *
+
+ Group Hazel_Dell+Upper_Weir  #sps.  2 
+                stat p.value   
+OTU406:26grass 0.412  0.0034 **
+OTU380:5grass  0.306  0.0380 * 
+
+ Group Hazel_Dell+Whidbey  #sps.  37 
+                  stat p.value    
+OTU32:10grass    0.697  0.0002 ***
+OTU222:130grass  0.674  0.0002 ***
+OTU154:27grass   0.562  0.0002 ***
+OTU51:7grass     0.542  0.0002 ***
+OTU127:23grass   0.527  0.0002 ***
+OTU283:26grass   0.502  0.0002 ***
+OTU1844:65grass  0.488  0.0002 ***
+OTU188:32grass   0.465  0.0002 ***
+OTU543:29grass   0.457  0.0006 ***
+OTU1647:39grass  0.435  0.0014 ** 
+OTU3238:119grass 0.435  0.0006 ***
+OTU134:5grass    0.431  0.0004 ***
+OTU1161:65grass  0.431  0.0010 ***
+OTU256:40grass   0.427  0.0008 ***
+OTU2305:148grass 0.427  0.0014 ** 
+OTU108:13grass   0.427  0.0016 ** 
+OTU92:5grass     0.419  0.0016 ** 
+OTU893:132grass  0.373  0.0034 ** 
+OTU408:26grass   0.367  0.0066 ** 
+OTU2157:70grass  0.363  0.0094 ** 
+OTU600:36grass   0.361  0.0110 *  
+OTU305:5grass    0.357  0.0080 ** 
+OTU165:26grass   0.352  0.0088 ** 
+OTU678:29grass   0.346  0.0120 *  
+OTU328:34grass   0.344  0.0118 *  
+OTU319:6grass    0.333  0.0252 *  
+OTU3370:157grass 0.328  0.0208 *  
+OTU792:36grass   0.328  0.0244 *  
+OTU367:12grass   0.327  0.0226 *  
+OTU2470:128grass 0.326  0.0166 *  
+OTU448:33grass   0.314  0.0362 *  
+OTU2784:149grass 0.311  0.0416 *  
+OTU582:30grass   0.310  0.0414 *  
+OTU737:33grass   0.310  0.0402 *  
+OTU348:36grass   0.305  0.0426 *  
+OTU146:34grass   0.301  0.0468 *  
+OTU353:127grass  0.289  0.0452 *  
+
+ Group Horse_Rock+Upper_Weir  #sps.  51 
+                  stat p.value    
+OTU39:6grass     0.756  0.0002 ***
+OTU114:5grass    0.706  0.0002 ***
+OTU83:5grass     0.643  0.0002 ***
+OTU16:5grass     0.641  0.0002 ***
+OTU804:65grass   0.596  0.0002 ***
+OTU136:10grass   0.577  0.0002 ***
+OTU438:44grass   0.564  0.0002 ***
+OTU697:139grass  0.537  0.0002 ***
+OTU516:42grass   0.526  0.0002 ***
+OTU36:8grass     0.504  0.0002 ***
+OTU1060:56grass  0.504  0.0002 ***
+OTU327:39grass   0.502  0.0004 ***
+OTU89:6grass     0.501  0.0002 ***
+OTU1333:45grass  0.490  0.0006 ***
+OTU250:54grass   0.466  0.0002 ***
+OTU839:140grass  0.452  0.0008 ***
+OTU2432:53grass  0.444  0.0004 ***
+OTU194:10grass   0.443  0.0004 ***
+OTU2419:47grass  0.433  0.0008 ***
+OTU2056:56grass  0.420  0.0010 ***
+OTU428:56grass   0.418  0.0012 ** 
+OTU3403:53grass  0.404  0.0022 ** 
+OTU926:41grass   0.399  0.0030 ** 
+OTU299:62grass   0.398  0.0010 ***
+OTU2837:42grass  0.396  0.0038 ** 
+OTU2156:18grass  0.391  0.0034 ** 
+OTU505:52grass   0.387  0.0048 ** 
+OTU2150:147grass 0.382  0.0038 ** 
+OTU326:48grass   0.380  0.0076 ** 
+OTU598:54grass   0.367  0.0036 ** 
+OTU3492:78grass  0.359  0.0088 ** 
+OTU951:48grass   0.359  0.0110 *  
+OTU609:45grass   0.356  0.0116 *  
+OTU2135:146grass 0.355  0.0108 *  
+OTU1773:41grass  0.353  0.0128 *  
+OTU322:44grass   0.352  0.0096 ** 
+OTU1356:58grass  0.349  0.0152 *  
+OTU832:48grass   0.349  0.0118 *  
+OTU744:133grass  0.342  0.0174 *  
+OTU148:19grass   0.342  0.0088 ** 
+OTU801:45grass   0.339  0.0174 *  
+OTU199:5grass    0.336  0.0178 *  
+OTU1529:143grass 0.326  0.0244 *  
+OTU3218:146grass 0.325  0.0270 *  
+OTU726:46grass   0.319  0.0122 *  
+OTU1835:46grass  0.317  0.0226 *  
+OTU363:19grass   0.314  0.0242 *  
+OTU1366:41grass  0.312  0.0300 *  
+OTU287:44grass   0.305  0.0426 *  
+OTU318:12grass   0.303  0.0400 *  
+OTU1955:157grass 0.295  0.0490 *  
+
+ Group Horse_Rock+Whidbey  #sps.  8 
+                  stat p.value    
+OTU149:25grass   0.602  0.0002 ***
+OTU1177:33grass  0.526  0.0002 ***
+OTU902:30grass   0.474  0.0004 ***
+OTU949:26grass   0.433  0.0008 ***
+OTU3107:142grass 0.328  0.0244 *  
+OTU297:15grass   0.328  0.0142 *  
+OTU3288:138grass 0.324  0.0296 *  
+OTU1032:145grass 0.312  0.0380 *  
+
+ Group Lower_Table+Upper_Weir  #sps.  2 
+                  stat p.value  
+OTU2532:124grass 0.346  0.0118 *
+OTU248:18grass   0.318  0.0206 *
+
+ Group Lower_Table+Whetstone  #sps.  6 
+                 stat p.value    
+OTU360:103grass 0.669  0.0002 ***
+OTU651:101grass 0.473  0.0004 ***
+OTU226:8grass   0.441  0.0002 ***
+OTU382:72grass  0.429  0.0016 ** 
+OTU172:25grass  0.395  0.0042 ** 
+OTU826:103grass 0.359  0.0074 ** 
+
+ Group Lower_Table+Whidbey  #sps.  1 
+                  stat p.value    
+OTU3811:156grass 0.436   4e-04 ***
+
+ Group Roxy_Ann+Upper_Table  #sps.  55 
+                 stat p.value    
+OTU264:19grass  0.874  0.0002 ***
+OTU118:8grass   0.804  0.0002 ***
+OTU111:5grass   0.791  0.0002 ***
+OTU2753:19grass 0.767  0.0002 ***
+OTU2166:20grass 0.703  0.0002 ***
+OTU3318:83grass 0.675  0.0002 ***
+OTU2710:87grass 0.632  0.0002 ***
+OTU565:20grass  0.627  0.0002 ***
+OTU213:15grass  0.618  0.0002 ***
+OTU2545:40grass 0.605  0.0002 ***
+OTU235:17grass  0.592  0.0002 ***
+OTU425:19grass  0.592  0.0002 ***
+OTU80:7grass    0.567  0.0002 ***
+OTU1412:20grass 0.565  0.0002 ***
+OTU302:16grass  0.562  0.0002 ***
+OTU956:22grass  0.558  0.0002 ***
+OTU22:6grass    0.535  0.0002 ***
+OTU68:12grass   0.516  0.0002 ***
+OTU1662:84grass 0.487  0.0006 ***
+OTU13:5grass    0.481  0.0002 ***
+OTU3410:79grass 0.476  0.0008 ***
+OTU3753:85grass 0.464  0.0006 ***
+OTU241:6grass   0.456  0.0002 ***
+OTU1004:79grass 0.451  0.0008 ***
+OTU2830:19grass 0.449  0.0006 ***
+OTU2688:19grass 0.446  0.0006 ***
+OTU251:5grass   0.432  0.0004 ***
+OTU1677:25grass 0.432  0.0012 ** 
+OTU383:18grass  0.427  0.0014 ** 
+OTU1359:19grass 0.426  0.0008 ***
+OTU2031:78grass 0.425  0.0010 ***
+OTU2001:22grass 0.425  0.0008 ***
+OTU572:17grass  0.422  0.0026 ** 
+OTU2414:85grass 0.416  0.0020 ** 
+OTU561:26grass  0.406  0.0040 ** 
+OTU723:25grass  0.405  0.0030 ** 
+OTU14:5grass    0.403  0.0024 ** 
+OTU791:26grass  0.402  0.0070 ** 
+OTU155:7grass   0.392  0.0066 ** 
+OTU2184:79grass 0.383  0.0070 ** 
+OTU115:11grass  0.373  0.0054 ** 
+OTU701:22grass  0.366  0.0106 *  
+OTU429:17grass  0.365  0.0138 *  
+OTU2531:80grass 0.365  0.0062 ** 
+OTU2308:19grass 0.364  0.0082 ** 
+OTU573:22grass  0.364  0.0106 *  
+OTU1829:20grass 0.359  0.0080 ** 
+OTU3564:78grass 0.348  0.0122 *  
+OTU2337:18grass 0.346  0.0086 ** 
+OTU835:25grass  0.340  0.0216 *  
+OTU993:28grass  0.339  0.0280 *  
+OTU3388:18grass 0.331  0.0236 *  
+OTU259:24grass  0.324  0.0346 *  
+OTU2426:82grass 0.321  0.0276 *  
+OTU369:25grass  0.316  0.0318 *  
+
+ Group Roxy_Ann+Whetstone  #sps.  2 
+                  stat p.value   
+OTU2059:112grass 0.404  0.0034 **
+OTU550:82grass   0.340  0.0170 * 
+
+ Group Upper_Table+Whetstone  #sps.  1 
+                  stat p.value  
+OTU1145:104grass 0.345  0.0184 *
+
+ Group Upper_Table+Whidbey  #sps.  10 
+                  stat p.value    
+OTU230:18grass   0.578  0.0002 ***
+OTU1911:159grass 0.530  0.0002 ***
+OTU139:21grass   0.502  0.0002 ***
+OTU1439:25grass  0.438  0.0014 ** 
+OTU232:6grass    0.407  0.0008 ***
+OTU1841:152grass 0.394  0.0034 ** 
+OTU1154:150grass 0.385  0.0032 ** 
+OTU1527:27grass  0.364  0.0060 ** 
+OTU1716:150grass 0.321  0.0308 *  
+OTU1796:156grass 0.310  0.0468 *  
+
+ Group Upper_Weir+Whidbey  #sps.  3 
+                  stat p.value    
+OTU181:5grass    0.608  0.0002 ***
+OTU627:50grass   0.353  0.0108 *  
+OTU1314:150grass 0.343  0.0084 ** 
+
+ Group Whetstone+Whidbey  #sps.  1 
+                 stat p.value   
+OTU825:105grass 0.356  0.0086 **
+
+ Group French_flat+Hazel_Dell+Whidbey  #sps.  3 
+               stat p.value    
+OTU61:5grass  0.437  0.0004 ***
+OTU109:7grass 0.417  0.0006 ***
+OTU358:6grass 0.326  0.0204 *  
+
+ Group French_flat+Horse_Rock+Upper_Weir  #sps.  1 
+                 stat p.value  
+OTU416:141grass 0.352  0.0108 *
+
+ Group French_flat+Horse_Rock+Whidbey  #sps.  4 
+                  stat p.value  
+OTU3379:13grass  0.337  0.0148 *
+OTU2325:138grass 0.320  0.0270 *
+OTU126:5grass    0.311  0.0290 *
+OTU1664:94grass  0.297  0.0498 *
+
+ Group French_flat+Lower_Table+Upper_Table  #sps.  1 
+               stat p.value   
+OTU244:7grass 0.388  0.0036 **
+
+ Group French_flat+Lower_Table+Whetstone  #sps.  12 
+                  stat p.value    
+OTU2831:31grass  0.678  0.0002 ***
+OTU1189:103grass 0.667  0.0002 ***
+OTU28:5grass     0.647  0.0002 ***
+OTU1931:104grass 0.646  0.0002 ***
+OTU1322:91grass  0.615  0.0002 ***
+OTU984:140grass  0.611  0.0002 ***
+OTU1816:23grass  0.610  0.0002 ***
+OTU2256:105grass 0.595  0.0002 ***
+OTU2465:120grass 0.544  0.0002 ***
+OTU1490:117grass 0.506  0.0002 ***
+OTU1298:105grass 0.352  0.0112 *  
+OTU1957:100grass 0.298  0.0496 *  
+
+ Group French_flat+Roxy_Ann+Upper_Table  #sps.  21 
+                  stat p.value    
+OTU2192:24grass  0.612  0.0002 ***
+OTU1306:80grass  0.545  0.0002 ***
+OTU1603:24grass  0.539  0.0002 ***
+OTU1038:91grass  0.508  0.0002 ***
+OTU1462:16grass  0.496  0.0002 ***
+OTU2816:28grass  0.473  0.0004 ***
+OTU2154:100grass 0.468  0.0004 ***
+OTU1893:88grass  0.465  0.0004 ***
+OTU2774:96grass  0.465  0.0004 ***
+OTU1434:28grass  0.462  0.0004 ***
+OTU1050:28grass  0.460  0.0002 ***
+OTU1914:100grass 0.454  0.0004 ***
+OTU2177:14grass  0.449  0.0004 ***
+OTU100:7grass    0.436  0.0002 ***
+OTU2553:95grass  0.433  0.0004 ***
+OTU2089:27grass  0.433  0.0008 ***
+OTU1437:97grass  0.421  0.0006 ***
+OTU2167:28grass  0.417  0.0012 ** 
+OTU211:6grass    0.384  0.0038 ** 
+OTU412:9grass    0.327  0.0242 *  
+OTU2297:81grass  0.326  0.0232 *  
+
+ Group French_flat+Roxy_Ann+Whetstone  #sps.  4 
+                  stat p.value    
+OTU1246:89grass  0.551  0.0004 ***
+OTU3834:89grass  0.495  0.0004 ***
+OTU3448:110grass 0.410  0.0018 ** 
+OTU2151:88grass  0.306  0.0410 *  
+
+ Group French_flat+Upper_Weir+Whidbey  #sps.  1 
+               stat p.value  
+OTU179:5grass 0.312  0.0314 *
+
+ Group Hazel_Dell+Horse_Rock+Upper_Weir  #sps.  2 
+                  stat p.value    
+OTU607:38grass   0.590  0.0002 ***
+OTU2147:132grass 0.364  0.0056 ** 
+
+ Group Hazel_Dell+Horse_Rock+Whetstone  #sps.  1 
+                stat p.value  
+OTU335:31grass 0.324  0.0208 *
+
+ Group Hazel_Dell+Horse_Rock+Whidbey  #sps.  10 
+                  stat p.value    
+OTU1858:118grass 0.534  0.0002 ***
+OTU29:5grass     0.498  0.0002 ***
+OTU110:26grass   0.493  0.0002 ***
+OTU234:27grass   0.488  0.0002 ***
+OTU94:5grass     0.456  0.0002 ***
+OTU2070:39grass  0.406  0.0010 ***
+OTU123:18grass   0.388  0.0020 ** 
+OTU1168:38grass  0.357  0.0048 ** 
+OTU483:30grass   0.335  0.0188 *  
+OTU2316:126grass 0.306  0.0412 *  
+
+ Group Hazel_Dell+Upper_Table+Whidbey  #sps.  2 
+               stat p.value   
+OTU116:5grass 0.377  0.0038 **
+OTU88:16grass 0.357  0.0090 **
+
+ Group Hazel_Dell+Upper_Weir+Whidbey  #sps.  1 
+               stat p.value    
+OTU99:17grass 0.531   2e-04 ***
+
+ Group Hazel_Dell+Whetstone+Whidbey  #sps.  1 
+                stat p.value  
+OTU183:12grass 0.324   0.019 *
+
+ Group Horse_Rock+Upper_Table+Upper_Weir  #sps.  1 
+              stat p.value    
+OTU11:5grass 0.624   2e-04 ***
+
+ Group Horse_Rock+Upper_Weir+Whetstone  #sps.  1 
+               stat p.value  
+OTU361:44grass 0.34  0.0208 *
+
+ Group Horse_Rock+Upper_Weir+Whidbey  #sps.  4 
+                stat p.value    
+OTU122:8grass  0.548  0.0002 ***
+OTU243:21grass 0.437  0.0006 ***
+OTU329:18grass 0.400  0.0028 ** 
+OTU249:48grass 0.303  0.0390 *  
+
+ Group Lower_Table+Roxy_Ann+Upper_Table  #sps.  3 
+                stat p.value    
+OTU168:20grass 0.550  0.0002 ***
+OTU196:25grass 0.415  0.0006 ***
+OTU145:14grass 0.334  0.0150 *  
+
+ Group Lower_Table+Roxy_Ann+Whetstone  #sps.  1 
+                stat p.value  
+OTU378:25grass 0.302  0.0484 *
+
+ Group Lower_Table+Upper_Weir+Whidbey  #sps.  1 
+                stat p.value   
+OTU423:43grass 0.351  0.0092 **
+
+ Group Roxy_Ann+Upper_Table+Upper_Weir  #sps.  6 
+                 stat p.value    
+OTU18:5grass    0.619  0.0002 ***
+OTU27:5grass    0.521  0.0002 ***
+OTU1176:88grass 0.407  0.0014 ** 
+OTU220:19grass  0.377  0.0036 ** 
+OTU208:19grass  0.373  0.0060 ** 
+OTU182:5grass   0.297  0.0500 *  
+
+ Group Roxy_Ann+Upper_Table+Whetstone  #sps.  2 
+                  stat p.value   
+OTU317:19grass   0.408  0.0012 **
+OTU3346:109grass 0.334  0.0218 * 
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Whidbey  #sps.  1 
+               stat p.value    
+OTU161:5grass 0.424   2e-04 ***
+
+ Group French_flat+Hazel_Dell+Lower_Table+Whetstone  #sps.  1 
+              stat p.value  
+OTU332:5grass 0.33   0.017 *
+
+ Group French_flat+Horse_Rock+Lower_Table+Whetstone  #sps.  1 
+               stat p.value    
+OTU40:13grass 0.558   2e-04 ***
+
+ Group French_flat+Horse_Rock+Upper_Weir+Whetstone  #sps.  1 
+               stat p.value    
+OTU225:6grass 0.443   6e-04 ***
+
+ Group French_flat+Lower_Table+Roxy_Ann+Whetstone  #sps.  1 
+                 stat p.value   
+OTU3162:102grass 0.39  0.0024 **
+
+ Group French_flat+Lower_Table+Upper_Table+Whetstone  #sps.  1 
+               stat p.value   
+OTU159:5grass 0.345  0.0098 **
+
+ Group French_flat+Lower_Table+Upper_Weir+Whetstone  #sps.  1 
+             stat p.value  
+OTU5:5grass 0.309  0.0264 *
+
+ Group French_flat+Roxy_Ann+Upper_Table+Upper_Weir  #sps.  1 
+                stat p.value  
+OTU2657:5grass 0.306  0.0418 *
+
+ Group French_flat+Roxy_Ann+Upper_Table+Whetstone  #sps.  20 
+                  stat p.value    
+OTU3:5grass      0.678  0.0002 ***
+OTU2061:110grass 0.645  0.0002 ***
+OTU1096:28grass  0.634  0.0002 ***
+OTU1248:80grass  0.624  0.0002 ***
+OTU2022:95grass  0.622  0.0002 ***
+OTU2767:91grass  0.596  0.0002 ***
+OTU1946:107grass 0.591  0.0002 ***
+OTU216:21grass   0.575  0.0002 ***
+OTU2755:110grass 0.570  0.0002 ***
+OTU2254:89grass  0.552  0.0004 ***
+OTU2252:28grass  0.528  0.0002 ***
+OTU2516:8grass   0.517  0.0004 ***
+OTU1559:97grass  0.480  0.0006 ***
+OTU3251:94grass  0.455  0.0004 ***
+OTU1694:109grass 0.449  0.0008 ***
+OTU1085:81grass  0.421  0.0012 ** 
+OTU2185:88grass  0.395  0.0032 ** 
+OTU2413:112grass 0.390  0.0034 ** 
+OTU2799:110grass 0.332  0.0196 *  
+OTU1584:112grass 0.317  0.0268 *  
+
+ Group French_flat+Upper_Table+Upper_Weir+Whidbey  #sps.  1 
+              stat p.value  
+OTU35:5grass 0.319  0.0206 *
+
+ Group Hazel_Dell+Horse_Rock+Lower_Table+Upper_Weir  #sps.  1 
+                 stat p.value  
+OTU399:134grass 0.307  0.0316 *
+
+ Group Hazel_Dell+Horse_Rock+Roxy_Ann+Whidbey  #sps.  1 
+                stat p.value  
+OTU190:17grass 0.313   0.024 *
+
+ Group Hazel_Dell+Horse_Rock+Upper_Weir+Whidbey  #sps.  12 
+                stat p.value    
+OTU34:7grass   0.790  0.0002 ***
+OTU141:27grass 0.787  0.0002 ***
+OTU19:5grass   0.771  0.0002 ***
+OTU26:5grass   0.663  0.0002 ***
+OTU37:5grass   0.625  0.0002 ***
+OTU279:5grass  0.570  0.0002 ***
+OTU370:45grass 0.486  0.0002 ***
+OTU376:30grass 0.450  0.0002 ***
+OTU72:6grass   0.412  0.0008 ***
+OTU1259:6grass 0.359  0.0068 ** 
+OTU325:26grass 0.315  0.0236 *  
+OTU308:14grass 0.310  0.0314 *  
+
+ Group Hazel_Dell+Horse_Rock+Whetstone+Whidbey  #sps.  2 
+                stat p.value    
+OTU52:6grass   0.411  0.0008 ***
+OTU359:30grass 0.317  0.0196 *  
+
+ Group Hazel_Dell+Lower_Table+Upper_Weir+Whidbey  #sps.  2 
+                stat p.value    
+OTU113:14grass 0.504  0.0002 ***
+OTU8:5grass    0.371  0.0036 ** 
+
+ Group Hazel_Dell+Roxy_Ann+Upper_Table+Upper_Weir  #sps.  1 
+                stat p.value   
+OTU191:19grass 0.352  0.0084 **
+
+ Group Hazel_Dell+Roxy_Ann+Upper_Weir+Whidbey  #sps.  1 
+                  stat p.value  
+OTU3327:128grass 0.293   0.047 *
+
+ Group Hazel_Dell+Upper_Weir+Whetstone+Whidbey  #sps.  1 
+               stat p.value  
+OTU255:20grass 0.34  0.0124 *
+
+ Group Horse_Rock+Roxy_Ann+Upper_Table+Upper_Weir  #sps.  1 
+              stat p.value    
+OTU91:9grass 0.491   2e-04 ***
+
+ Group Lower_Table+Roxy_Ann+Upper_Table+Whetstone  #sps.  3 
+                stat p.value    
+OTU31:7grass   0.755  0.0002 ***
+OTU54:5grass   0.495  0.0002 ***
+OTU352:20grass 0.329  0.0180 *  
+
+ Group Roxy_Ann+Upper_Table+Upper_Weir+Whidbey  #sps.  1 
+                stat p.value    
+OTU981:37grass 0.403   6e-04 ***
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Roxy_Ann+Whidbey  #sps.  1 
+               stat p.value  
+OTU193:5grass 0.296  0.0438 *
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Upper_Weir+Whidbey  #sps.  1 
+               stat p.value    
+OTU107:5grass 0.406   6e-04 ***
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Whetstone+Whidbey  #sps.  1 
+              stat p.value   
+OTU46:7grass 0.364  0.0026 **
+
+ Group French_flat+Hazel_Dell+Upper_Table+Whetstone+Whidbey  #sps.  1 
+             stat p.value  
+OTU66:6grass  0.3  0.0376 *
+
+ Group French_flat+Lower_Table+Roxy_Ann+Upper_Table+Upper_Weir  #sps.  2 
+                 stat p.value    
+OTU9:5grass     0.664   2e-04 ***
+OTU3145:81grass 0.639   2e-04 ***
+
+ Group French_flat+Roxy_Ann+Upper_Table+Upper_Weir+Whetstone  #sps.  2 
+                 stat p.value  
+OTU160:5grass   0.335   0.014 *
+OTU1055:54grass 0.302   0.047 *
+
+ Group Hazel_Dell+Horse_Rock+Lower_Table+Upper_Weir+Whidbey  #sps.  1 
+              stat p.value    
+OTU15:5grass 0.591   2e-04 ***
+
+ Group Hazel_Dell+Horse_Rock+Upper_Table+Upper_Weir+Whidbey  #sps.  2 
+              stat p.value    
+OTU57:8grass 0.501   2e-04 ***
+OTU10:5grass 0.497   2e-04 ***
+
+ Group Hazel_Dell+Horse_Rock+Upper_Weir+Whetstone+Whidbey  #sps.  1 
+              stat p.value  
+OTU77:5grass 0.331  0.0114 *
+
+ Group Hazel_Dell+Lower_Table+Roxy_Ann+Upper_Table+Whidbey  #sps.  1 
+              stat p.value   
+OTU74:8grass 0.403  0.0016 **
+
+ Group Hazel_Dell+Upper_Table+Upper_Weir+Whetstone+Whidbey  #sps.  1 
+              stat p.value   
+OTU131:5grass 0.38  0.0014 **
+
+ Group Horse_Rock+Lower_Table+Upper_Table+Whetstone+Whidbey  #sps.  1 
+              stat p.value    
+OTU25:5grass 0.457   2e-04 ***
+
+ Group Lower_Table+Roxy_Ann+Upper_Table+Upper_Weir+Whetstone  #sps.  1 
+               stat p.value    
+OTU102:9grass 0.424   2e-04 ***
+
+ Group Lower_Table+Roxy_Ann+Upper_Table+Upper_Weir+Whidbey  #sps.  1 
+              stat p.value  
+OTU33:5grass 0.326  0.0138 *
+
+ Group Lower_Table+Roxy_Ann+Upper_Table+Whetstone+Whidbey  #sps.  4 
+                 stat p.value    
+OTU6:5grass     0.522  0.0002 ***
+OTU3447:99grass 0.428  0.0006 ***
+OTU1:5grass     0.420  0.0002 ***
+OTU3155:86grass 0.347  0.0112 *  
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Lower_Table+Whetstone+Whidbey  #sps.  1 
+               stat p.value   
+OTU95:14grass 0.355  0.0038 **
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Roxy_Ann+Upper_Table+Whetstone  #sps.  1 
+              stat p.value    
+OTU17:5grass 0.393   2e-04 ***
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Upper_Table+Upper_Weir+Whidbey  #sps.  1 
+             stat p.value    
+OTU4:5grass 0.542   2e-04 ***
+
+ Group French_flat+Horse_Rock+Lower_Table+Roxy_Ann+Upper_Table+Upper_Weir  #sps.  1 
+              stat p.value    
+OTU58:7grass 0.469   2e-04 ***
+
+ Group French_flat+Horse_Rock+Lower_Table+Upper_Table+Upper_Weir+Whidbey  #sps.  1 
+              stat p.value    
+OTU67:5grass 0.415   4e-04 ***
+
+ Group Hazel_Dell+Horse_Rock+Lower_Table+Upper_Weir+Whetstone+Whidbey  #sps.  1 
+              stat p.value    
+OTU21:5grass 0.583   2e-04 ***
+
+ Group Hazel_Dell+Horse_Rock+Roxy_Ann+Upper_Table+Upper_Weir+Whidbey  #sps.  1 
+                 stat p.value    
+OTU610:105grass 0.488   2e-04 ***
+
+ Group Hazel_Dell+Horse_Rock+Roxy_Ann+Upper_Weir+Whetstone+Whidbey  #sps.  1 
+                stat p.value  
+OTU178:17grass 0.327   0.014 *
+
+ Group Horse_Rock+Lower_Table+Roxy_Ann+Upper_Table+Upper_Weir+Whetstone  #sps.  1 
+               stat p.value    
+OTU169:8grass 0.515   2e-04 ***
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Lower_Table+Roxy_Ann+Whetstone+Whidbey  #sps.  1 
+              stat p.value    
+OTU42:5grass 0.405   8e-04 ***
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Roxy_Ann+Upper_Table+Upper_Weir+Whetstone  #sps.  1 
+              stat p.value    
+OTU12:5grass 0.507   2e-04 ***
+
+ Group French_flat+Hazel_Dell+Horse_Rock+Roxy_Ann+Upper_Table+Whetstone+Whidbey  #sps.  1 
+              stat p.value   
+OTU20:5grass 0.347  0.0056 **
+
+ Group French_flat+Horse_Rock+Lower_Table+Roxy_Ann+Upper_Table+Upper_Weir+Whetstone  #sps.  1 
+              stat p.value    
+OTU38:5grass 0.572   2e-04 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 

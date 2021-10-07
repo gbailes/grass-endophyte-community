@@ -1568,7 +1568,6 @@ library(indicspecies)
 
 ## indicator species:
 
-
 ## need a sites as rows OTU table:
 biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
 biom97_noCon = subset_samples(biom97, site != 'Control')
@@ -1642,6 +1641,7 @@ write.csv(aa, file="indSpecResults.csv")
 
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 from Bio import SeqIO
 import re
 
@@ -1721,6 +1721,8 @@ library(indicspecies)
 
 biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
 biom97_noCon = subset_samples(biom97, site != 'Control')
+
+#write.csv(otu_table(biom97), file="biom97otuTable.csv")
 
 FFonlyIndSpec <- as.character(read.csv('FFonlyIndSpec.csv')[,1])
 
@@ -1829,13 +1831,9 @@ aa = pd.read_csv('grahamTaxonomyTable.csv', index_col = 0)
 
 aa.iloc[0:2,0:6]
 
-## get rid of unnecessary prefix tags:
 
-## for example
 bb = pd.Series(['k__Fungi','p__Ascomycota','c__Sordariomycetes','o__Hypocreales','f__Hypocreales_fam_Incertae_sedis','g__Sarocladium'])
 bb.str.replace("[kpcofgs]__","") 
-
-## we really just need genus:
 
 aa.query("genus == 'g__Colletotrichum'")
 
@@ -1868,8 +1866,680 @@ aa.loc['OTU1468:13grass'] ## also Glomerella in grahams tax table, no species
 ## since they are +/- synonyms
 ## or maybe best, go family level here and assume its all colletotrichum:
 
-aa.query("family == 'f__Glomerellaceae'")
+glomerellaceaeOTUs = aa.query("family == 'f__Glomerellaceae'")
 
+## how many of these are in our FF indicator species of both hosts
 FFindSpecBothHosts = pd.read_csv('FFindSpecBothHosts.txt', header=None).iloc[:,0]
+
+
+glomerellaceaeOTUs.index 
+
+glomerellaceaeOTUs[glomerellaceaeOTUs.index.isin(FFindSpecBothHosts)]
+
+## yes, all of the colletotrichum indicator species in FF that are shared by both species
+## are in there, as Glomerella
+
+## and are all the colletotrichum indicator species in FF, shared or not, in there? 
+
+
+FFindSpec = pd.read_csv('FFonlyIndSpec.csv', header=None).iloc[:,0]
+
+glomerellaceaeOTUs[glomerellaceaeOTUs.index.isin(FFindSpec)]
+
+glomerellaceaeOTUs.shape ## so maybe 39 colletotrichums in the entire study
+
+glomerellaceaeOTUs[glomerellaceaeOTUs.index.isin(FFindSpec)].shape ## 16 of them are indicators for FF 
+## only three are shared?
+
+## the sixteen number fits with our blast results exactly. And all of them blast to 
+## to c. graminicola as the closest match. 
+
+## okay, so we're not losing any important sequences by using grahams
+## taxanomy with a glomerellaceae query. so pull all of those sequences,
+## and any other colletotrichums that pop up in the study
+
+## we need to take a look at the map of these, are they really that unique to the 
+## site? Or is this an illumina illusion...I hate relying on abundance data 
+
+## if it seems real, make a tree, see if the site has a unique strain or something. 
+
+## next we need geolocation, are the indicator species really actually localized
+## in FF? 
+
+## subset our OTU table to just these indicator colletos:
+
+glomerellaceaeOTUs = aa.query("family == 'f__Glomerellaceae'")
+
+## find these in our OTU table:
+
+biom97otu = pd.read_csv("biom97otuTable.csv", index_col=0)
+
+sampDat = pd.read_csv("grahamSample.csv", index_col=0)
+
+
+glomerellaceaeOTUs
+
+FFindSpec
+
+grahamDivGPD = pd.read_pickle('grahamDivGPD.p')
+
+## to see where the colletotrichum indicator species are:
+
+glomIndOtu = glomerellaceaeOTUs[glomerellaceaeOTUs.index.isin(FFindSpec)].index.values.tolist()
+
+## get sites for each OTU:
+aa = biom97otu.loc[glomIndOtu,:]
+
+## can we collapse this by site?:
+
+bb = aa.T
+
+cc = bb.merge(sampDat.site,left_index=True, right_index=True) 
+
+dd = cc.groupby('site').sum()
+
+dd.T
+
+## well, that's interesting. It does look like the colletotrichum group 
+## has something going on at FF. 
+
+## what next? 
+## get the sequences and do the trees.
+
+## oh wait, I'm not sure if biom97 is variance stabilized...shit...
+## certainly doesn't look like it.
+
+## okay, so back up and invoke the deseq gods:
+
+## we'll try this tutorial, using phyloseq and deseq:
+## https://joey711.github.io/phyloseq-extensions/DESeq2.html
+
+library("phyloseq")
+library("DESeq2") 
+library("indicspecies")
+
+biom97 <- import_biom('~/Documents/analyses/grahamGrass/grass-endophyte-community/grass_97_wmeta.biom')
+
+biom97_Con = subset_samples(biom97, site == 'Control')
+
+biom97_noCon = subset_samples(biom97, site != 'Control')
+
+biom97 
+
+otu_table(biom97_Con)
+
+head(sample_data(biom97 ))
+
+packageVersion("phyloseq")
+
+packageVersion("DESeq2")
+
+## great. I guess our "experimental" design is basically going to be based on 
+## site.
+
+## for some reason, this only works if I remove the controls. 
+## this probably has to do with Graham's (and my) prepocessing, 
+## as 
+
+biome = biom97_noCon
+biomStab <- phyloseq_to_deseq2(biome, ~ site)
+biomStab <- DESeq(biomStab, test="Wald", fitType="parametric")
+## okay, runs when controls are removed.
+
+str(biomStab)
+
+## I don't totally understand this but it looks like the 
+## adjusted read counts are all based on a contrast of 
+## each site against french flat. I guess the function 
+## had to pick one site as the y-intercept for the model?
+## And therefore it picked the first category, FF? not sure. 
+## not sure it matters, but it seems like that means 
+## all the adjusted, modeled counts are relative to FF? 
+
+## still following the example:
+res = results(biomStab, cooksCutoff = FALSE)
+alpha = 0.05
+sigtab = res[which(res$padj < alpha), ]
+sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(biome)[rownames(sigtab), ], "matrix"))
+
+head(sigtab)
+
+dim(sigtab)
+
+sigtab
+
+## that's nice, but it's making some decisions for us. 
+## as in, it is deciding if the log-fold changes in 
+## abundances among sites are statistically significant
+## and in the process dropping most of the species
+
+## I'm also still not totally sure that it is just 
+## doing this on the basis of the single comparison
+## between FF and Whidby. I think I just want to 
+## know the data that deseq used to make these decisions.
+## long ago Roo wrote a script to help with this,
+## I wonder if it is still useful:
+
+deseq.vst = getVarianceStabilizedData(deseq)
+# replace negatives with zeros
+deseq.vst[deseq.vst <0] <- 0
+# add the varience stabilized otu numbers into the dataset:
+otu_table(phyloseq) <- otu_table(deseq.vst, taxa_are_rows = TRUE)
+# create a new object for the varience stabalized set
+phyloseq -> phyloseq.DESeq
+# And, filter any taxa that became 0s all the way across
+phyloseq.DESeq = filter_taxa(phyloseq.DESeq, function(x) sum(x) > 0.1, T)
+
+## therefore, is it as simple as?:
+aa <- getVarianceStabilizedData(biomStab)
+
+?getVarianceStabilizedData
+
+?varianceStabilizingTransformation
+
+## but lots of negative values. Not sure if that's right. Just to check,
+## I think things have gotten easier since Roo wrote that. I think 
+## you can now just give DESeq2 a matrix of count data, and it will
+## give you a matrix of recommended, stabilized counts.
+
+browseVignettes("DESeq2")
+
+## as input, deseq2 is expecting a rows-are-genes, columns-are-samples.
+
+## for us, I think this is analagous to rows-are-OTUs, columns are samples:
+
+head(otu_table(biom97_noCon))
+
+## and this is how phyloseq sets things up (otus are rows)
+
+## so can we just feed deseq the OTU table from phyloseq?
+
+type(otu_table(biom97_noCon)) ## looks like a matrix to me
+
+## so something like this?
+aa <- otu_table(biom97_noCon)@.Data
+bb <- varianceStabilizingTransformation(aa)
+
+someRows <- c(
+            'OTU194:10grass',
+            'OTU178:17grass',
+            'OTU2287:112grass',
+            'OTU1727:23grass',
+            'OTU1587:35grass',
+            'OTU2071:23grass'
+            )
+
+
+otu_table(biom97_noCon)[someRows,1:10]
+bb[someRows,1:10]
+
+## well, that looks promising.
+#
+
+
+otu_table(biom97_noCon)[100:110,1:5]
+bb[100:110,1:5]
+
+## just checking, are there any rows that 
+## are negative, that are not "-7.24..."?
+
+bb[bb <= 0] 
+## yeah. that's confusing. What are the actual 
+## counts on these?
+
+zeroVal <- bb['OTU2071:23grass','159grass']
+
+
+cc <- bb
+
+cc[cc == zeroVal] <- 0
+
+## okay, so the remaining negative values - what were there 
+## original count values?
+
+cc['OTU4:5grass','156grass'] ## deseq value is -1.15
+otu_table(biom97_noCon)['OTU4:5grass','156grass'] ## it's count value was one
+
+## interesting. other examples?
+
+## our most negative deseq value is ~ -2.5:
+ 
+
+otu_table(biome)['OTU263:5grass',25]
+
+otu_table(biome)[,25] 
+
+dd <- which(cc == min(cc), arr.ind=TRUE)[,1] ## lots, but all from column 25
+## this is sample "29grass", a hazel dell site
+
+otu_table(biom97_noCon)[,25] 
+
+otu_table(biom97_noCon)[dd,25] 
+
+sample_data(biome)["29grass",] ## again, all singletons (count equal 1)
+
+## so generally, after removing the zero values, is a negative value 
+## in the deseq results a singleton in the original count data?
+
+## what is the maximum (closest to zero) negative value?
+
+smallNeg <- max(cc[cc < 0]) ## -0.0114
+
+which(cc == smallNeg, arr.ind=TRUE)
+
+length(otu_table(biom97_noCon))
+
+length(cc < 0)
+
+cc[cc < 0]
+cc[cc < 0]
+
+cc < 0
+
+str(otu_table(biome))
+
+[cc < 0]
+
+## okay, so to get the big picture:
+otu_table(biome)@.Data[cc < 0]
+
+
+## so I believe that by removing the variance stabilized values 
+## under 0 in this dataset, we are losing some observations of 
+## 4 counts or less. Small numbers, for sure. And with index
+## bleed, who knows how important or not these are. 
+
+## we can't simply add 7 or whatever, this will mess with the 
+## relative importance of the OTUs. There is no single value 
+## other than the "zero" value that means the same thing among 
+## all the samples. We can't simply shift it all up...
+
+## what to do here? Let's follow Roo's lead and just lose
+## the negatives. Think of it as a quality control step. 
+
+aa <- otu_table(biom97_noCon)@.Data
+bb <- varianceStabilizingTransformation(aa)
+bb[bb < 0] <- 0
+biom97vs <- biom97_noCon
+otu_table(biom97vs) <- otu_table(bb, taxa_are_rows = TRUE)
+
+biom97vs
+
+## any zero rows or columns?
+
+sum(rowSums(otu_table(biom97vs)) == 0) ## 194
+
+
+biom97vs = filter_taxa(biom97vs, function(x) sum(x) > 0.1, T)
+
+biom97vs
+biom97
+
+## any sites? seems unlikely
+sum(rowSums(otu_table(biom97vs)) == 0) ## 0
+
+## okay. With these new numbers, how do the indicator species 
+## look now?
+
+siteNu = which( colnames(sample_data(biom97vs)) == "site")
+
+sitesDF <- sample_data(biom97vs)[,siteNu, drop=FALSE]
+
+
+biomOTU <- t(otu_table(biom97vs))
+
+
+all(rownames(sitesDF) == rownames(biomOTU))
+
+
+sites <- sample_data(biom97vs)$site
+
+## great, so now rerun the indicator spec analysis:
+
+bothHostIndSpecVS <- multipatt(biomOTU, sites, func = 'r.g', control=how(nperm=5000))
+
+#save(bothHostIndSpecVS, file='bothHostIndSpecVS.rda')
+
+#sink(file='resultsBothHostIndSpecVS.txt')
+    summary( bothHostIndSpecVS)
+#sink()
+
+## so how does this compare to our previous results?
+
+load("bothHostIndSpec.rda")
+
+indSpecOTUsFF_VS <- scan('indSpecFF_VS.txt', what='character')
+
+indSpecOTUsFF_VS 
+
+## get a new OTU table for our variance stabilized results:
+
+
+#write.csv(otu_table(biom97vs), file="otuTable_vs.csv")
+
+## interesting, we find more indicator species after variance 
+## stabilization. 
+
+## hmm, probably a denoising result, we just got rid of a lot of 
+## low-abundance OTUs. 
+
+## now sure how to feel about that. But let's go with it, 
+## I think it is justifiable, or more justifiable than 
+## the raw read stance, knowing what I know about this 
+## sequencing run. 
+
+## what's the goal here? 
+## See if the same species are important
+
+## look for species that are only found at french flat
+## see if colletotrichum remains the most important
+## if so, see if colletotrichum 
+
+## larger goal is to get Bitty and Graham some species to
+## talk about, maybe hand off to them to o the lit search, etc.
+
+## anyway, first step, get some blast matches to these, 
+## in python:
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import geopandas as gpd
+from Bio import SeqIO
+from Bio import Phylo
+from Bio import Entrez
+import re
+
+p =  re.compile('(OTU).*(grass)') 
+
+with open('indSpecFF_VS.txt', 'r') as indSpp:
+    aa = indSpp.readlines()
+    cleanedNames = [ p.match(i).group() for i in aa]
+
+
+cc = []
+bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
+for i in bb: 
+    if p.match(i.id).group() in cleanedNames:
+        i.name = p.match(i.id).group()
+        i.id = p.match(i.id).group()
+        i.description = ''
+        cc.append(i)
+
+SeqIO.write(cc, "indSpp_vs.fasta", "fasta")
+
+## now blast these in bash
+
+blastn -query indSpp_vs.fasta -db unite2021.fasta -out indSpp_vsBlastLong.txt -num_descriptions 10 -num_alignments 10
+
+blastn -query indSpp_vs.fasta -db unite2021.fasta -out indSpp_vsBlastQuickRead.csv -outfmt 10 -max_target_seqs 1
+
+## only ~27 blasted to anything. 
+
+sed '1 i\qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore' indSpp_vsBlastQuickRead.csv -i
+
+libreoffice --calc FFindSpeciesBothHostsBlastQuickRead.csv &
+
+## still more colletotrichum than anything else. Okay, so what now? 
+
+## how unique are these colletotrichums to French Flat?
+
+## bring up graham's tax table and sample_data again...
+
+## python
+
+taxtab = pd.read_csv('grahamTaxonomyTable.csv', index_col = 0)
+
+taxtab.query("genus == 'g__Colletotrichum'")
+
+taxtab.query("genus == 'g__Glomerella'")
+
+taxtab.query("family == 'f__Glomerellaceae'")
+
+
+taxtab.loc[cleanedNames,:].genus
+
+taxtab.loc[cleanedNames,:].genus.isna().sum() ## 30 unidentified genera. Lots.
+
+
+cleanedNames  
+
+glomOTUs = taxtab.query("family == 'f__Glomerellaceae'").index.tolist()
+
+## we want to get the indicator species that matched to Glomerellaceae:
+
+
+glomFFindSpp = [i for i in cleanedNames if i in glomOTUs] ## 12, all blasting at 97% to c. graminicola in the new UNITE data
+
+taxtab.loc[glomFFindSpp] ## and all glomerella in the old database
+
+## and which of these are in both hosts?
+
+## get our other two tables
+sampleData = pd.read_csv('grahamSample.csv', index_col=0)
+otuTable_vs = pd.read_csv('otuTable_vs.csv', index_col=0)
+
+## subset otuTable to our glomerellaceae:
+aa = otuTable_vs.loc[glomFFindSpp]
+## subset to FF:
+
+
+sampleData.site
+
+ffFestuSites = sampleData.query("(site == 'French_flat') and (host == 'F. roemeri')").index.tolist()
+ffDanthSites = sampleData.query("(site == 'French_flat') and (host == 'D. californica')").index.tolist()
+
+## subset our otuTable further with these:
+
+bb = aa.loc[:,ffFestuSites] ## lots
+
+bb[bb.sum(axis=1) != 0]
+
+cc = aa.loc[:,ffDanthSites] ## not lots
+cc[cc.sum(axis=1) != 0] ## OTU1265:13grass is the only shared colletotrichum
+## also the only colletrichum that appears in our FF site at all. 
+
+
+## great, so which of our glomerellaceous FF indicator species are in both Danthonia and Festuca?
+
+## just:
+## OTU1265:13grass
+
+## but they all blast to same damn thing. It is indeed time to do a tree. 
+
+## give it a rest? Or charge on and make some trees?
+
+## ned to get ready for the meeting to tonight...
+
+#### make a tree of the colletotrichums ######
+
+## okay tomorrow is today...
+
+## for visualizing, biopython has some nice builtins
+
+## following the example here: http://biopython.org/DIST/docs/tutorial/Tutorial.html#sec253
+
+## a newick format tree is here:
+
+(((A,B),(C,D)),(E,F,G));
+
+## this is saved as "simple.dnd"
+
+tree = Phylo.read('simple.dnd', 'newick')
+
+Phylo.draw_ascii(tree)
+
+tree.rooted = True
+## this doesn't seem to make a difference to the plotter.
+tree.rooted = False
+
+## or with matplotlib:
+Phylo.draw(tree)
+
+## or with the oranges example from here:  
+## https://bioclimate.commons.gc.cuny.edu/bioinformatics/sequence-alignment-and-tree-building/
+
+tree = Phylo.read('/home/daniel/Desktop/orange/oranges.nwk', 'newick')
+Phylo.draw(tree)
+
+## to get our tree, I guess I'll be using phyml, which is 
+## included in the anaconda distribution...
+
+## I have conda but haven't thought about it in a while...
+
+## anyway, doesn't matter, because phyml seems to be a standalone
+## can get it with apt. 
+
+## okay, so let's try some of our sequences...
+
+## what sequences do we want? I think we want all glomellaceae sequences,
+## ultimately colored by their status as an indicator of FF, and 
+## which hosts they are in. 
+
+## we might also want some other colletotrichums, like the ones that 
+## Rusty Rodriguez looked at.
+
+## to start, get all the glomelleraceous sequences (I think they are 
+## all colletotrichums)
+
+
+
+## we want to make note of: 
+
+## all glomerellaceae OTUs and then
+## ones that are FFindicators and
+## ones that are in danth or 
+## ones that are in festu or 
+## ones that are in both
+
+## so for each OTU we need to find the sites it was observed in,
+## then look up the host for those sites, 
+## then categorize our results as either danth, festu, or both
+
+taxtab = pd.read_csv('grahamTaxonomyTable.csv', index_col = 0)
+
+otutab = pd.read_csv('otuTable_vs.csv', index_col = 0)
+
+sampleData = pd.read_csv('grahamSample.csv', index_col=0)
+
+## to get the glomerellaceous taxa:
+glomOTUs = taxtab.query("family == 'f__Glomerellaceae'").index.tolist()
+
+## to get which of these are FF indicators:
+indSpecFF_VS = (pd.read_csv('indSpecFF_VS.txt', header=None)
+                .iloc[:,0]
+                .str.strip())
+
+## how to get host again?
+## first get samples:
+aa = glomOTUs[30]
+bb = otutab.loc[aa,:]
+cc = bb[bb > 0]
+dd = cc.index.tolist()
+ee = sampleData.loc[dd].host.unique().tolist()
+ff = hostClassif(ee)
+
+## that can be a function:
+
+def getHosts(otu):
+    bb = otutab.loc[otu,:]
+    cc = bb[bb > 0]
+    dd = cc.index.tolist()
+    ee = sampleData.loc[dd].host.unique().tolist()
+    ff = hostClassif(ee)
+    return(ff)
+
+def hostClassif(hosts):
+    if 'F. roemeri' in hosts and 'D. californica' in hosts:
+        label = "bothHosts"
+    elif 'F. roemeri' in hosts and 'D. californica' not in hosts:
+        label = "festu"
+    elif "D. californica" in hosts and 'F. roemeri' not in hosts:
+        label = "danth"
+    else:
+        label = "NoHost"
+    return(label)
+
+getHosts(glomOTUs[30])
+
+## seems to work okay:
+
+[ getHosts(i) for i in glomOTUs ]
+
+## like a lot more "bothhosts" happened than I would expect. 
+
+## really, we were looking for colletos that were shared only 
+## at French Flat. 
+
+## okay, so where does that leave us?
+
+## for cleaning up names:
+p =  re.compile('(OTU).*(grass)') 
+
+cc = []
+bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
+for i in bb: 
+    if p.match(i.id).group() in glomOTUs:
+        na = p.match(i.id).group()
+        i.name = na
+        i.id = na
+        i.description = (f'{getHosts(na)}_{na in indSpecFF_VS.values}')
+        cc.append(i)
+
+#SeqIO.write(cc, "glomSeqsFromGrahamData.fasta", "fasta")
+
+## great, those should be the sequences from our study that we want to look at.
+
+
+## we'll also want some outside sequences
+
+## make this tree, update notebook with indicator species for Graham and bitty to 
+## look at, then give the graham project 
+
+## what outside sequences do we want? we get a couple random colletrichums from 
+## unite? 
+
+## I think we want to see if we can track down the colletotrichums in 
+## table 2 of Singh 2011, "Unraveling the role of fungal symbionts in plant
+## abiotic stress tolerance", which is pretty much a summary of 
+## Redman and Rodriguez's work.
+
+
+## are sequences from these publically available?
+## doesn't seem like they reported the its from 
+## their particular strains, but genbank purports
+## to have the type specimens:
+
+## Colletotrichum gloeosporioides:
+NR_160754
+## Colletotrichum magnum
+NR_160836
+## Colletotrichum musae
+NR_120132
+## Colletotrichum orbiculare
+NR_152271
+
+## can we get these and strip down to ITS1 region?
+idList = ['NR_160754', 'NR_160836', 'NR_120132', 'NR_152271']
+Entrez.email = "danchurchthomas@gmail.com"  
+handle = Entrez.efetch(db="nucleotide", id=idList, rettype="fasta")
+## add these to our collection of sequences from the study
+for seq_record in SeqIO.parse(handle, "fasta"): cc.append(seq_record)
+
+
+
+#SeqIO.write(cc, "allSeqsFromGrahamData.fasta", "fasta")
+
+## look at these in ugene, come back
+
+## well, it is easy to see where to trim the sequences from genbank
+## for ITS1 region. Do we need to?
+
+## tomorrow - 
+## root tree with a sequence outside Glomerellaceae from Reblova, Gams, Seifert 2011
+## paper. 
+## add in some represntative C. graminicola sequences from Crouch 2006 paper.
+## correct issue with shared hosts at French Flat. There should only be one 
+## shared species?
 
 
