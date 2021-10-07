@@ -1,0 +1,42 @@
+BLASTN 2.9.0+
+
+
+Reference: Zheng Zhang, Scott Schwartz, Lukas Wagner, and Webb
+Miller (2000), "A greedy algorithm for aligning DNA sequences", J
+Comput Biol 2000; 7(1-2):203-14.
+
+
+
+Database: unite2021.fasta
+           98,090 sequences; 50,634,537 total letters
+
+
+
+Query= OTU2257:136grass danth_False
+
+Length=383
+
+
+***** No hits found *****
+
+
+
+Lambda      K        H
+    1.33    0.621     1.12 
+
+Gapped
+Lambda      K        H
+    1.28    0.460    0.850 
+
+Effective search space used: 17332655343
+
+
+  Database: unite2021.fasta
+    Posted date:  Sep 27, 2021  10:25 AM
+  Number of letters in database: 50,634,537
+  Number of sequences in database:  98,090
+
+
+
+Matrix: blastn matrix 1 -2
+Gap Penalties: Existence: 0, Extension: 2.5

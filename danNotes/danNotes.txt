@@ -10,6 +10,9 @@ git remote set-url origin git@github.com:gbailes/grass-endophyte-community.git
 ## Grahams notebook for making his biom can be viewed here:
 https://nbviewer.jupyter.org/github/gbailes/grass-endophyte-community/blob/master/alt_biom.ipynb
 
+## my own notebook is being built, viewable here:
+https://nbviewer.org/github/gbailes/grass-endophyte-community/blob/master/danNotes/danStatsForGrassAnalysis.ipynb
+
 ## as far as grahams paper, I think I was supposed to:
 
  """
@@ -2439,7 +2442,12 @@ dd = cc.index.tolist()
 ee = sampleData.loc[dd].host.unique().tolist()
 ff = hostClassif(ee)
 
-## that can be a function:
+
+## that can be a function. But first, let's clean out the 
+## funky Colletotrichum we found below (search "ditch it")
+
+glomOTUs = taxtab.query("family == 'f__Glomerellaceae'").index.tolist()
+glomOTUs = [ i for i in glomOTUs if i != 'OTU2257:136grass' ]
 
 def getHosts(otu):
     bb = otutab.loc[otu,:]
@@ -2460,6 +2468,15 @@ def hostClassif(hosts):
         label = "NoHost"
     return(label)
 
+## also might be useful:
+
+def getHostandSites(otu):
+    bb = otutab.loc[otu,:]
+    cc = bb[bb > 0]
+    dd = cc.index.tolist()
+    ee = sampleData.loc[dd,:].host
+    return(ee)
+
 getHosts(glomOTUs[30])
 
 ## seems to work okay:
@@ -2468,10 +2485,94 @@ getHosts(glomOTUs[30])
 
 ## like a lot more "bothhosts" happened than I would expect. 
 
+sharedallSitesDF = pd.DataFrame.from_dict(
+                    {'otu': glomOTUs,
+                    'host': [ getHosts(i) for i in glomOTUs ],
+                    'indSpp': [ i in indSpecFF_VS.values for i in glomOTUs ],}
+                    )
+
+sharedallSitesDF
+
+## okay, sanity check, how do we get the finer filter of both hosts at FF hosting
+## the OTU?
+
+
+
+otu = 'OTU2257:136grass' ## should be only danthonia
+otu = 'OTU3169:13grass'
+
+getHostandSites(otu).values
+
+getHostandSites(otu).index
+
+sampleData.query("site == 'French_flat'").host
+
+FFsitesFestu = sampleData.query("site == 'French_flat' and host == 'F. roemeri'").index.tolist()
+FFsitesDanth = sampleData.query("site == 'French_flat' and host == 'D. californica'").index.tolist()
+
+## so my memory is that only one colletrichum OTU was found in 
+## both hosts at FF, as an indicator species for FF:
+
+j=0
+aa = getHostandSites(glomOTUs[j]).index.tolist()
+bb = any([ (i in FFsitesFestu and i in FFsitesDanth) for i in aa ])
+
+for j in glomOTUs:
+    aa = getHostandSites(j).index.tolist()
+    bb = ([ (i in FFsitesFestu and i in FFsitesDanth) for i in aa ])
+    print(j)
+    print(bb)
+    print(any(bb))
+
+for j in glomOTUs:
+    aa = getHostandSites(j).index.tolist()
+    bb = ([ (i in FFsitesFestu and i in FFsitesDanth) for i in aa ])
+    if any(bb): print(j)
+
+
+## really getting lost here. I could have sworn there was a shared indicator 
+## OTU. But not finding it. 
+
+## I thought I found:
+OTU1265:13grass
+## in both
+
+aa = getHostandSites('OTU1265:13grass').index.tolist()
+
+[ (i in FFsitesFestu) for i in aa ]
+[ (i in FFsitesDanth) for i in aa ] ## but we lost it as a Danthonia species after deseq
+
+## is it still an indicator?
+
+any([ (i in indSpecFF_VS.values) for i in aa ])
+
+## nope. Hmm. not sure about these deseq stabilizations...or at least the process 
+## of getting rid of negatives. Anyway...
+
+
+sharedallSitesDF = pd.DataFrame.from_dict(
+                    {'otu': glomOTUs,
+                    'host': [ getHosts(i) for i in glomOTUs ],
+                    'FFindSpp': [ i in indSpecFF_VS.values for i in glomOTUs ],}
+                    )
+ 
+
+sharedallSitesDF.query("FFindSpp == True")
+
+indSpecFF_VS
+
 ## really, we were looking for colletos that were shared only 
 ## at French Flat. 
 
+## no strictly shared OTUs, but numerous blasts to basically the 
+## same species complex
+
 ## okay, so where does that leave us?
+
+## I think it is time to build a tree, to 
+## really see if these colletotrichums
+## cluster together
+
 
 ## for cleaning up names:
 p =  re.compile('(OTU).*(grass)') 
@@ -2526,14 +2627,164 @@ handle = Entrez.efetch(db="nucleotide", id=idList, rettype="fasta")
 ## add these to our collection of sequences from the study
 for seq_record in SeqIO.parse(handle, "fasta"): cc.append(seq_record)
 
+## and some seqs from Crouch et al, which is what a lot of these colletos blast to.
+## but which ones?
+
+## they identify two major lineages, one which infects corn (C. graminicola sensu stricto),
+## and C. cereale for former C. graminicolas that infect pooideae grasses. 
+
+## btw are Danthonia and Festuca in pooideae?
+
+## Festuca is, but Danthonia is in...wait for it...Danthonioideae (according to wikipedia)
+
+## which would sort of fit with the wandering host situation described by Redmen, Rodriguez, etc:
+## there are hosts for which a Colleto is pathogenic, and there are non-disease hosts, for the same
+## strain of Colleto
+
+## it might be good to get these from UNITE, as they will have 
+## likely reviewed the 100 or sequences and lumped them into 
+## their own species hypothesis?
+
+## anyway, some strains from Crouch:
+## a couple of C. graminicola sensu stricto:
+
+grep "DQ1[0-9]\{5\}" unite2021.fasta 
+
+grep "DQ126[0-9]\{3\}" unite2021.fasta | wc -l ## 21, includes graminicolas plus one C. sublineola
+## only 20? and only graminicola? where are the cereales?
+
+grep "cereale" unite2021.fasta ## not colletos
+
+grep ">Glomerella_" unite2021.fasta ## finds a few species, including one likely from the Crouch study
+## but don't feel like following that up
+
+grep "DQ132[0-9]\{3\}" unite2021.fasta ## nada. 
+## presumably these were the cereale sequences
+
+grep "DQ126[0-9]\{3\}" unite2021.fasta ## the graminicolas. 
+## okay, but which ones to use? They have little metadata, like 
+## what strain they came from. 
+
+## is the sequence the same as the NCBI record sequence?
+grep DQ126180 unite2021.fasta -A 1
+## looks like it. so just grab these from genbank with the others
+
+## Glomerella graminicola strain MO-178
+DQ126254
+## Glomerella graminicola strain IN-300170
+DQ126248
 
 
-#SeqIO.write(cc, "allSeqsFromGrahamData.fasta", "fasta")
+## and a couple of C. cereale sensu stricto:
+
+## it looks like we can't get the exact organisms we want from UNITE:
+grep "Colletotrichum_cereale" unite2021.fasta ## nada. 
+grep "cereale" unite2021.fasta ## no colletotrichums...
+## These must have been absorbed into some other project's sequences, or other taxa.
+## funny, I wonder how that decision was made. someone doesn't like that 
+## proposed species. Anyway, let's get them from gene bank:
+
+## Colletotrichum cereale strain CA-62
+DQ126158
+## Colletotrichum cereale strain NY-16
+DQ126226
+## Colletotrichum cereale strain NJ-4990
+DQ126219
+
+## it might be because these are only partial for the spacer region.
+## they were using the 5.8 gene for their phylogeny, I guess.
+## maybe the other sequences, that actually were in UNITE are full ITS,
+## and that is why they were included?
+## anyway, can't find full ITS1, so try these
+
+
+## and we also want a rooting sequence from the Reblova, Gams, Seifert 2011
+## paper
+
+## I think figure 4 shows us what we want. Something from Australiascaceae
+
+## PRM 915720 Australiasca laeënsis GU180624
+## or 
+## DAOM 226788 Australiasca laeënsis GU180623
+
+## are these in unite?
+
+grep GU18062. unite2021.fasta ## not colletos
+
+## nope. but the Monilochaetes guadalcanalensis is, could use this...
+
+## so weird. Can you get any more authoritative than Keith Seifert?
+## he literally wrote the book...
+
+## anyway, grab from Genbank:
+
+
+## Australiasca laeënsis 
+GU180623
+
+## so make a list of all the above outside sequences that 
+## we need from genbank
+
+
+## Colletotrichum gloeosporioides:
+NR_160754
+## Colletotrichum magnum
+NR_160836
+## Colletotrichum musae
+NR_120132
+## Colletotrichum orbiculare
+NR_152271
+## Glomerella graminicola strain MO-178
+DQ126254
+## Glomerella graminicola strain IN-300170
+DQ126248
+## Colletotrichum cereale strain CA-62
+DQ126158
+## Colletotrichum cereale strain NY-16
+DQ126226
+## Colletotrichum cereale strain NJ-4990
+DQ126219
+## Australiasca laeënsis (root)
+GU180623
+
+#### and starting over:
+
+glomOTUs = taxtab.query("family == 'f__Glomerellaceae'").index.tolist()
+glomOTUs = [ i for i in glomOTUs if i != 'OTU2257:136grass' ]
+
+p =  re.compile('(OTU).*(grass)') 
+
+cc = []
+bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
+for i in bb: 
+    if p.match(i.id).group() in glomOTUs:
+        na = p.match(i.id).group()
+        i.name = na
+        i.id = na
+        i.description = (f'{getHosts(na)}_{na in indSpecFF_VS.values}')
+        cc.append(i)
+
+genbankSeqs = [
+    'NR_160754','NR_160836','NR_120132',' NR_152271',
+    'DQ126254','DQ126248','DQ126158','DQ126226',
+    'DQ126219','GU180623']
+
+## can we get these and strip down to ITS1 region?
+idList = genbankSeqs
+Entrez.email = "danchurchthomas@gmail.com"  
+handle = Entrez.efetch(db="nucleotide", id=idList, rettype="fasta")
+## add these to our collection of sequences from the study
+for seq_record in SeqIO.parse(handle, "fasta"): cc.append(seq_record)
+
+#SeqIO.write(cc, "allSeqsForGrahamTree.fasta", "fasta")
 
 ## look at these in ugene, come back
 
 ## well, it is easy to see where to trim the sequences from genbank
 ## for ITS1 region. Do we need to?
+
+## also looks like the Australiasca laeënsis root idea didn't work out. 
+## I guess we need something else from the genus, ITS is too wonky
 
 ## tomorrow - 
 ## root tree with a sequence outside Glomerellaceae from Reblova, Gams, Seifert 2011
@@ -2542,4 +2793,67 @@ for seq_record in SeqIO.parse(handle, "fasta"): cc.append(seq_record)
 ## correct issue with shared hosts at French Flat. There should only be one 
 ## shared species?
 
+######## side note, fucked up OTU ##########
+## OTU2257:136grass doesn't really fit in the other sequences at all
 
+## did this really blast to a colletotrichum?
+
+## get this sequence out:
+
+OTU2257 = [ i for i in cc if i.id == 'OTU2257:136grass' ]
+#SeqIO.write(OTU2257, "OTU2257.fasta", "fasta")
+
+## in bash
+blastn -query OTU2257.fasta -db unite2021.fasta -out OTU2257BlastLong.txt -num_descriptions 10 -num_alignments 10
+
+## huh, nope, that doesn't blast to shit
+
+## for some reason, the taxonomy table has it as glomerella?:
+
+taxtab.head()
+
+taxtab.loc['OTU2257:136grass',:]
+
+## graham has it identified down to species, with an accession number...
+
+## maybe grab that from UNITE? 
+
+## but not that important, methinks. Just ditch it? It's not an indicator
+
+## how frequent is it?
+
+otutab.head()
+
+OTU2257ser = otutab.loc['OTU2257:136grass',:]
+
+OTU2257ser.sum() 
+
+OTU2257ser[OTU2257ser > 0] ## one observation, in its namesake of 136grass
+## which is hazel dell, ditch it.
+
+########## end side note of fucked up otu ###############
+
+## strange tree coming from the ITS data
+
+tree = Phylo.read('glomSeqsFromGrahamData.nwk', 'newick')
+
+Phylo.draw(tree)
+
+## great, so what's the plan?
+
+## reset all the above to be done on the command line somehow, 
+
+## figure out the branch support metrics 
+
+## trim the outside sequences, see if it matters
+
+## get rid of non-colleto sequence, not useful
+
+## for tree labeling:
+## change true/false to IndSpp or blank
+## clip samplenames from otus
+## add "FF" if present there
+## if at FF, add name of host at FF?
+
+## then update jupyter, await further instructions from 
+## Bitty and Graham
