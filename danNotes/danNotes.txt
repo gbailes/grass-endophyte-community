@@ -2188,7 +2188,6 @@ siteNu = which( colnames(sample_data(biom97vs)) == "site")
 
 sitesDF <- sample_data(biom97vs)[,siteNu, drop=FALSE]
 
-
 biomOTU <- t(otu_table(biom97vs))
 
 
@@ -2210,6 +2209,8 @@ bothHostIndSpecVS <- multipatt(biomOTU, sites, func = 'r.g', control=how(nperm=5
 ## so how does this compare to our previous results?
 
 load("bothHostIndSpec.rda")
+
+
 
 indSpecOTUsFF_VS <- scan('indSpecFF_VS.txt', what='character')
 
@@ -2245,7 +2246,7 @@ indSpecOTUsFF_VS
 ## in python:
 
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt; plt.ion()
 import pandas as pd
 import geopandas as gpd
 from Bio import SeqIO
@@ -2457,6 +2458,16 @@ def getHosts(otu):
     ff = hostClassif(ee)
     return(ff)
 
+## need one for just FF hosts
+def getFFHosts(otu):
+    bb = otutab.loc[otu,:]
+    cc = bb[bb > 0]
+    FFsites = sampleData.query("site == 'French_flat'").index.tolist()
+    dd = cc[cc.index.to_series().isin(FFsites)].index.tolist()
+    ee = sampleData.loc[dd].host.unique().tolist()
+    ff = hostClassif(ee)
+    return(ff)
+
 def hostClassif(hosts):
     if 'F. roemeri' in hosts and 'D. californica' in hosts:
         label = "bothHosts"
@@ -2477,25 +2488,77 @@ def getHostandSites(otu):
     ee = sampleData.loc[dd,:].host
     return(ee)
 
-getHosts(glomOTUs[30])
+getHosts(glomOTUs[10])
+
+getHostandSites(glomOTUs[10])
 
 ## seems to work okay:
 
-[ getHosts(i) for i in glomOTUs ]
+[ getHostandSites(i) for i in glomOTUs ]
 
 ## like a lot more "bothhosts" happened than I would expect. 
 
 sharedallSitesDF = pd.DataFrame.from_dict(
                     {'otu': glomOTUs,
-                    'host': [ getHosts(i) for i in glomOTUs ],
-                    'indSpp': [ i in indSpecFF_VS.values for i in glomOTUs ],}
-                    )
+                    'generalHost': [ getHosts(i) for i in glomOTUs ],
+                    'inFF'  : [ any(getHostandSites(i).index.to_series().isin(FFsites)) for i in glomOTUs ],
+                    'indSpp': [ i in indSpecFF_VS.values for i in glomOTUs ],
+                    'FFhost': [ getFFHosts(i) for i in glomOTUs ],
+                   })
 
 sharedallSitesDF
 
-## okay, sanity check, how do we get the finer filter of both hosts at FF hosting
-## the OTU?
+## huh, I did retain OTU1265 after all, thought I lost it:
+sharedallSitesDF.query("indSpp == True and FFhost == 'bothHosts'")
 
+## in general I think we should a "build up" approach here, and build the 
+## descriptor string as a series of true conditions.
+
+## condition 1: is the OTU in FF?
+## condition 2: if so, is the OTU an indicator of FF?
+## condition 3: also, if it is at FF, what is/are its hosts at FF? 
+## condition 4: What are its hosts generally (not just at FF)?
+
+## condition 1: is the OTU in FF? 
+
+[ any([ i in FFsites for i in getHostandSites(j).index.tolist() ]) 
+        for j in glomOTUs ]
+
+any([ i in FFsites for i in getHostandSites(j).index.tolist() ])
+
+any([ i in FFsites for i in getHostandSites(glomOTUs[10]).index.tolist() ])
+
+FFsites = sampleData.query("site == 'French_flat'").index.tolist()
+
+FFsitesFestu = sampleData.query("site == 'French_flat' and host == 'F. roemeri'").index.tolist()
+FFsitesDanth = sampleData.query("site == 'French_flat' and host == 'D. californica'").index.tolist()
+
+glomOTUs[30]
+
+glomOTUs[10]
+
+## actually, better solution below:
+
+## condition 3: also, if it is at FF, what is/are its hosts at FF? 
+
+
+getHostandSites(glomOTUs[10]).index.to_series().isin(FFsites)
+
+aa = [ any(getHostandSites(i).index.to_series().isin(FFsites)) for i in glomOTUs ]
+
+[ getFFHosts(i) for i in glomOTUs ]
+
+## okay, so how can we turn this into an FF-specific host
+
+otu = glomOTUs[10]
+
+getHosts(otu)
+
+[ getHostandSites(i).index.to_series().isin(FFsites) for i in glomOTUs ]
+
+FFsites
+
+## great, so we have a good data frame summarizing the important labels
 
 
 otu = 'OTU2257:136grass' ## should be only danthonia
@@ -2534,28 +2597,38 @@ for j in glomOTUs:
 ## OTU. But not finding it. 
 
 ## I thought I found:
-OTU1265:13grass
+otu = 'OTU1265:13grass'
 ## in both
 
-aa = getHostandSites('OTU1265:13grass').index.tolist()
+aa = getHostandSites(otu).index.tolist()
 
 [ (i in FFsitesFestu) for i in aa ]
-[ (i in FFsitesDanth) for i in aa ] ## but we lost it as a Danthonia species after deseq
+[ (i in FFsitesDanth) for i in aa ] 
+
+[ (i in FFsites) for i in aa ] 
+
+## my brain is scrambled
 
 ## is it still an indicator?
 
+otu in indSpecFF_VS.values
+
+indSpecFF_VS.values
+
+## yeah
+
+[ i for i in aa ]
+
 any([ (i in indSpecFF_VS.values) for i in aa ])
 
-## nope. Hmm. not sure about these deseq stabilizations...or at least the process 
-## of getting rid of negatives. Anyway...
 
-
-sharedallSitesDF = pd.DataFrame.from_dict(
-                    {'otu': glomOTUs,
-                    'host': [ getHosts(i) for i in glomOTUs ],
-                    'FFindSpp': [ i in indSpecFF_VS.values for i in glomOTUs ],}
-                    )
- 
+## now out of date, defined elsewhere
+#sharedallSitesDF = pd.DataFrame.from_dict(
+#                    {'otu': glomOTUs,
+#                    'host': [ getHosts(i) for i in glomOTUs ],
+#                    'FFindSpp': [ i in indSpecFF_VS.values for i in glomOTUs ],}
+#                    )
+# 
 
 sharedallSitesDF.query("FFindSpp == True")
 
@@ -2744,16 +2817,14 @@ DQ126158
 DQ126226
 ## Colletotrichum cereale strain NJ-4990
 DQ126219
-## Australiasca laeënsis (root)
-GU180623
 
-#### and starting over:
+## Australiasca laeënsis (root)
+## GU180623
+## Never mind! It fucks up 
 
 glomOTUs = taxtab.query("family == 'f__Glomerellaceae'").index.tolist()
 glomOTUs = [ i for i in glomOTUs if i != 'OTU2257:136grass' ]
-
 p =  re.compile('(OTU).*(grass)') 
-
 cc = []
 bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
 for i in bb: 
@@ -2764,18 +2835,33 @@ for i in bb:
         i.description = (f'{getHosts(na)}_{na in indSpecFF_VS.values}')
         cc.append(i)
 
+
+#### and starting over:
+
+glomOTUs = taxtab.query("family == 'f__Glomerellaceae'").index.tolist()
+glomOTUs = [ i for i in glomOTUs if i != 'OTU2257:136grass' ]
+p =  re.compile('(OTU).*(grass)') 
+cc = []
+bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
+for i in bb: 
+    if p.match(i.id).group() in glomOTUs:
+        na = p.match(i.id).group()
+        i.name = na
+        i.id = na
+        i.description = desc
+        cc.append(i)
+
 genbankSeqs = [
     'NR_160754','NR_160836','NR_120132',' NR_152271',
     'DQ126254','DQ126248','DQ126158','DQ126226',
-    'DQ126219','GU180623']
+    'DQ126219']#,'GU180623']
 
-## can we get these and strip down to ITS1 region?
+
 idList = genbankSeqs
 Entrez.email = "danchurchthomas@gmail.com"  
 handle = Entrez.efetch(db="nucleotide", id=idList, rettype="fasta")
 ## add these to our collection of sequences from the study
 for seq_record in SeqIO.parse(handle, "fasta"): cc.append(seq_record)
-
 #SeqIO.write(cc, "allSeqsForGrahamTree.fasta", "fasta")
 
 ## look at these in ugene, come back
@@ -2833,15 +2919,26 @@ OTU2257ser[OTU2257ser > 0] ## one observation, in its namesake of 136grass
 
 ########## end side note of fucked up otu ###############
 
-## strange tree coming from the ITS data
-
+## tree coming from the ITS data
+plt.close('all')
 tree = Phylo.read('glomSeqsFromGrahamData.nwk', 'newick')
+Phylo.draw(tree)
+plt.title("only Graham's colletos")
+
+tree = Phylo.read('allSeqsForGrahamTree.nwk', 'newick')
+Phylo.draw(tree)
+plt.title('alignment untrimmed')
+tree = Phylo.read('allSeqsForGrahamTree_trimmed.nwk', 'newick')
+Phylo.draw(tree)
+plt.title('alignment trimmed to ITS1')
 
 Phylo.draw(tree)
+Phylo.draw(tree)
+
 
 ## great, so what's the plan?
 
-## reset all the above to be done on the command line somehow, 
+## reset all the above to be done on the command line somehow?
 
 ## figure out the branch support metrics 
 
@@ -2857,3 +2954,151 @@ Phylo.draw(tree)
 
 ## then update jupyter, await further instructions from 
 ## Bitty and Graham
+
+## do the above:
+
+### 1. get rid of non-colleto sequence, not useful - done
+
+### 2. trim the sequences outside ITS1 from the alignment, see if it matters
+## how long are grahams sequences?
+## go above, reconstruct just grahams seqs in "cc", check lengths:
+[ len(i.seq) for i in cc ]
+## all 178 BP
+
+## redoing all three trees (without outside seqs, with but untrimmed, and with, trimmed)
+## to use bootstrap method for confidence values on branches
+## trimmed tree built with 100 bootstrap cycles
+## using HKY85 substitution model, have no idea if this appropriate...
+
+### 3. for tree relabeling
+## change true/false to IndSpp or blank
+## clip samplenames from otus
+## add "FF" if present there
+## if at FF, add name of host at FF?
+
+## we have a nice dataframe made above, for labels for 
+## our glomerellaceaous OTUs of interest:
+
+sharedallSitesDF
+
+sharedallSitesDF.head()
+
+## one label might look like:
+
+aa = sharedallSitesDF.iloc[0,:]
+
+aa = sharedallSitesDF.iloc[1,:]
+
+aa = sharedallSitesDF.iloc[1,:]
+
+sharedallSitesDF.loc[otu,:]
+
+## have to set index on shareddf
+#sharedallSitesDF.set_index('otu', drop=True, inplace=True)
+
+def makeLabel(otu):
+    """otu is an otu from glomOTUs"""
+    sharedf = sharedallSitesDF.set_index('otu', drop=True)
+    aa = sharedf.loc[otu,:]    
+    ## clean name:
+    na = re.sub(":[0-9]+grass","", aa.name)
+    ## generalHost
+    gh = aa.generalHost
+    ## FF presence
+    if aa.inFF: inFF='.FF' 
+    else: inFF = ''
+    ## indSpp
+    if aa.indSpp: indSpp='+++' 
+    else: indSpp = ''
+    ## FFhost 
+    if inFF: FFhost = ('.' + aa.FFhost)
+    else: FFhost = ''
+    ## make label, for now leave out the name:
+    glomTipLabel = (f'{gh}{inFF}{FFhost}{indSpp}')
+    return(glomTipLabel)
+
+
+makeLabel('OTU2526:13grass')
+
+
+sharedallSitesDF
+
+sharedallSitesDF.head()
+
+##  great, so how to use this? 
+## we want to relabel our glom sequence Fasta file:
+
+
+sharedallSitesDF.head()
+
+glomOTUs = taxtab.query("family == 'f__Glomerellaceae'").index.tolist()
+glomOTUs = [ i for i in glomOTUs if i != 'OTU2257:136grass' ]
+p =  re.compile('(OTU).*(grass)') 
+cc = []
+bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
+for i in bb: 
+    if p.match(i.id).group() in glomOTUs:
+        na = p.match(i.id).group()
+        i.name = re.sub(":[0-9]+grass","", na)
+        i.id = i.name
+        i.description = makeLabel(na)
+        cc.append(i)
+
+#SeqIO.write(cc, "glomSeqsFromGrahamData.fasta", "fasta")
+
+genbankSeqs = [
+    'NR_160754','NR_160836','NR_120132',' NR_152271',
+    'DQ126254','DQ126248','DQ126158','DQ126226',
+    'DQ126219']#,'GU180623']
+
+
+idList = genbankSeqs
+Entrez.email = "danchurchthomas@gmail.com"  
+handle = Entrez.efetch(db="nucleotide", id=idList, rettype="fasta")
+## add these to our collection of sequences from the study
+for seq_record in SeqIO.parse(handle, "fasta"): cc.append(seq_record)
+
+#SeqIO.write(cc, "allSeqsForGrahamTree.fasta", "fasta")
+
+## now? rerun trees, see if they are pretty:
+
+## how common/abundant is OTU1265? does it partially explain the 
+## similarity of FF hosts?
+
+
+otuTable_vs.loc['OTU1265:13grass'].to_list()
+
+aa = otuTable_vs.loc['OTU1265:13grass']
+bb = aa[aa > 0]
+
+otuTable_vs.max().max() ## the maximum value for the whole otu table is ~20, and this OTU is 
+## up to 13 at one site, and often over 10. So probably pretty important
+
+ 
+sampleData.query("site == 'French_flat' and host == 'F. roemeri'").site
+sampleData.query("site == 'French_flat' and host == 'D. californica'").site
+
+bb
+
+## so that was generally interesting side project, but we still 
+## have no answer as to why those two sites converged?
+
+## probably doesn't have much to do with the colletotrichums, 
+## they are mostly in the festuca. 
+
+## It is likely more to do with the species unique to the site. 
+## Check their abundances. 
+
+## this will have to wait.
+
+## on monday:
+## 1. generate the nice trees, with trimmed alignments,
+## both with and without the outside sequences.
+## 2. update notebook with the colleto story (will probably take all day)
+## 3. then do your presentation
+
+## and then see what you have time for after this. 
+library("indicspecies")
+load("bothHostIndSpecVS.rda")
+
+
