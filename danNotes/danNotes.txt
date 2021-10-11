@@ -2500,13 +2500,16 @@ getHostandSites(glomOTUs[10])
 
 sharedallSitesDF = pd.DataFrame.from_dict(
                     {'otu': glomOTUs,
+                    'cleanedName': sharedallSitesDF.otu.str.replace(":[0-9]+grass", ""),
                     'generalHost': [ getHosts(i) for i in glomOTUs ],
                     'inFF'  : [ any(getHostandSites(i).index.to_series().isin(FFsites)) for i in glomOTUs ],
                     'indSpp': [ i in indSpecFF_VS.values for i in glomOTUs ],
                     'FFhost': [ getFFHosts(i) for i in glomOTUs ],
                    })
 
-sharedallSitesDF
+#sharedallSitesDF.to_csv('sharedallSitesDF.csv')
+
+sharedallSitesDF.otu.str.replace(":[0-9]+grass", "")
 
 ## huh, I did retain OTU1265 after all, thought I lost it:
 sharedallSitesDF.query("indSpp == True and FFhost == 'bothHosts'")
@@ -2921,13 +2924,20 @@ OTU2257ser[OTU2257ser > 0] ## one observation, in its namesake of 136grass
 
 ## tree coming from the ITS data
 plt.close('all')
-tree = Phylo.read('glomSeqsFromGrahamData.nwk', 'newick')
+
+#tree = Phylo.read('glomSeqsFromGrahamData.nwk', 'newick')
+#tree = Phylo.read('allSeqsForGrahamTree.phylip_phyml_tree.txt', 'newick')
+
+tree = Phylo.read('grahamAllSeqsTreeRelabeled.nwk', 'newick')
+
 Phylo.draw(tree)
+
 plt.title("only Graham's colletos")
 
 tree = Phylo.read('allSeqsForGrahamTree.nwk', 'newick')
 Phylo.draw(tree)
 plt.title('alignment untrimmed')
+
 tree = Phylo.read('allSeqsForGrahamTree_trimmed.nwk', 'newick')
 Phylo.draw(tree)
 plt.title('alignment trimmed to ITS1')
@@ -2996,26 +3006,27 @@ sharedallSitesDF.loc[otu,:]
 ## have to set index on shareddf
 #sharedallSitesDF.set_index('otu', drop=True, inplace=True)
 
-def makeLabel(otu):
-    """otu is an otu from glomOTUs"""
-    sharedf = sharedallSitesDF.set_index('otu', drop=True)
-    aa = sharedf.loc[otu,:]    
-    ## clean name:
-    na = re.sub(":[0-9]+grass","", aa.name)
-    ## generalHost
-    gh = aa.generalHost
-    ## FF presence
-    if aa.inFF: inFF='.FF' 
-    else: inFF = ''
-    ## indSpp
-    if aa.indSpp: indSpp='+++' 
-    else: indSpp = ''
-    ## FFhost 
-    if inFF: FFhost = ('.' + aa.FFhost)
-    else: FFhost = ''
-    ## make label, for now leave out the name:
-    glomTipLabel = (f'{gh}{inFF}{FFhost}{indSpp}')
-    return(glomTipLabel)
+## redefined below, don't use this
+###def makeLabel(otu):
+#    """otu is an otu from glomOTUs"""
+#    sharedf = sharedallSitesDF.set_index('otu', drop=True)
+#    aa = sharedf.loc[otu,:]    
+#    ## clean name:
+#    na = re.sub(":[0-9]+grass","", aa.name)
+#    ## generalHost
+#    gh = aa.generalHost
+#    ## FF presence
+#    if aa.inFF: inFF='.FF' 
+#    else: inFF = ''
+#    ## indSpp
+#    if aa.indSpp: indSpp='+++' 
+#    else: indSpp = ''
+#    ## FFhost 
+#    if inFF: FFhost = ('.' + aa.FFhost)
+#    else: FFhost = ''
+#    ## make label, for now leave out the name:
+#    glomTipLabel = (f'{gh}{inFF}{FFhost}{indSpp}')
+#    return(glomTipLabel)
 
 
 makeLabel('OTU2526:13grass')
@@ -3028,11 +3039,14 @@ sharedallSitesDF.head()
 ##  great, so how to use this? 
 ## we want to relabel our glom sequence Fasta file:
 
+taxtab = pd.read_csv('grahamTaxonomyTable.csv', index_col = 0)
+otutab = pd.read_csv('otuTable_vs.csv', index_col = 0)
+sampleData = pd.read_csv('grahamSample.csv', index_col=0)
 
-sharedallSitesDF.head()
 
 glomOTUs = taxtab.query("family == 'f__Glomerellaceae'").index.tolist()
 glomOTUs = [ i for i in glomOTUs if i != 'OTU2257:136grass' ]
+
 p =  re.compile('(OTU).*(grass)') 
 cc = []
 bb = SeqIO.parse('../otus_97_uclust_relabel.fasta', "fasta" )
@@ -3041,13 +3055,13 @@ for i in bb:
         na = p.match(i.id).group()
         i.name = re.sub(":[0-9]+grass","", na)
         i.id = i.name
-        i.description = makeLabel(na)
+        #i.description = makeLabel(na) ## too complex
+        i.description = ''
         cc.append(i)
 
 #SeqIO.write(cc, "glomSeqsFromGrahamData.fasta", "fasta")
 
-genbankSeqs = [
-    'NR_160754','NR_160836','NR_120132',' NR_152271',
+genbankSeqs = [ 'NR_160754','NR_160836','NR_120132',' NR_152271',
     'DQ126254','DQ126248','DQ126158','DQ126226',
     'DQ126219']#,'GU180623']
 
@@ -3098,7 +3112,102 @@ bb
 ## 3. then do your presentation
 
 ## and then see what you have time for after this. 
-library("indicspecies")
-load("bothHostIndSpecVS.rda")
 
 
+## starting over a bit, how can we repeat our ugene steps programmatically?
+
+## command line muscle alignment of just the graham sequences:
+
+fafi=glomSeqsFromGrahamData.fasta
+
+muscle -in $fafi -out glomSeqsFromGrahamData.alni -clw
+
+## this works better:
+muscle -in $fafi -out glomSeqsFromGrahamData.alni -clwstrict
+
+## but I think we need phylip format?
+
+muscle -in $fafi -out glomSeqsFromGrahamData.phylip -phyi
+
+phyml -i glomSeqsFromGrahamData.phylip
+
+## and weird errors about the expected length of 
+## OTUs results. Must be some sort of file formatting
+## issue.
+
+## I'm betting it's an issue with the spaces in the labels
+## so a test file, take spaces out of labels for first OTU:
+
+phyml -i test.phylip 
+
+## yup, problem bumps to second OTU.
+
+## ok, so for the moment, keep the labels simple
+
+## start over, with all seqs, grahams and genbank
+
+fafi=allSeqsForGrahamTree.fasta
+muscle -in $fafi -out allSeqsForGrahamTree.phy -phyi
+
+## here we have to trim out the non-ITS1 basepairs, doing this in 
+## ugene. Trimming out bps 1-58, and 302-667
+
+aliview allSeqsForGrahamTree.phy
+
+## ugene did not work. Used aliview instead, which offered to pad 
+## the sequences...fishy, why was this necessary?
+
+phyml -i allSeqsForGrahamTree_trimmed.phy
+
+## did that work?
+
+with open ('allSeqsForGrahamTree_trimmed.phy_phyml_tree.txt', 'r') as f:
+    tree = f.readlines()[0]
+
+sharedallSitesDF = pd.read_csv('sharedallSitesDF.csv', index_col=0)
+
+otuName =  re.compile('(OTU[0-9]+):')
+
+otusInTree = otuName.findall(tree)
+
+## look up this match in our tables, print a new label
+## create a label:
+
+def makeLabel(otuInTree):
+    """ get labels out of the phyml results and give them more 
+    information. Also need the sharedAllSitesDF dataframe"""
+    sharedf = sharedallSitesDF.set_index('cleanedName', drop=True)
+    info = sharedf.loc[i]
+    ## generalHost
+    gh = info.generalHost
+    ## FF presence
+    if info.inFF: inFF='.FF' 
+    else: inFF = ''
+    ## indSpp
+    if info.indSpp: indSpp='*' 
+    else: indSpp = ''
+    ## FFhost 
+    if inFF: FFhost = ('.' + info.FFhost)
+    else: FFhost = ''
+    glomTipLabel = (f'{i}.{gh}{inFF}{FFhost}{indSpp}')
+    return(glomTipLabel)
+
+aa = tree
+
+for i in otusInTree:
+    print(i)
+    ## find it in a:
+    aa = aa.replace(i, makeLabel(i))
+
+## write that back out, see it plots okay:
+
+with open('grahamAllSeqsTreeRelabeled.nwk', 'w') as fout:
+    fout.write(aa)
+
+## try this with our tree drawing code above 
+
+## looks good. We'll also need to give more information to the genbank sequences. 
+
+## and need to trim to ITS one on the genbank sequences
+
+## 
