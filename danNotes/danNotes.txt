@@ -2498,14 +2498,16 @@ getHostandSites(glomOTUs[10])
 
 ## like a lot more "bothhosts" happened than I would expect. 
 
+
 sharedallSitesDF = pd.DataFrame.from_dict(
                     {'otu': glomOTUs,
-                    'cleanedName': sharedallSitesDF.otu.str.replace(":[0-9]+grass", ""),
+                    'cleanedName': pd.Series(glomOTUs).str.replace(":[0-9]+grass", ""),
                     'generalHost': [ getHosts(i) for i in glomOTUs ],
                     'inFF'  : [ any(getHostandSites(i).index.to_series().isin(FFsites)) for i in glomOTUs ],
                     'indSpp': [ i in indSpecFF_VS.values for i in glomOTUs ],
                     'FFhost': [ getFFHosts(i) for i in glomOTUs ],
                    })
+
 
 #sharedallSitesDF.to_csv('sharedallSitesDF.csv')
 
@@ -2929,7 +2931,6 @@ plt.close('all')
 #tree = Phylo.read('allSeqsForGrahamTree.phylip_phyml_tree.txt', 'newick')
 
 tree = Phylo.read('grahamAllSeqsTreeRelabeled.nwk', 'newick')
-
 Phylo.draw(tree)
 
 plt.title("only Graham's colletos")
@@ -3157,7 +3158,9 @@ aliview allSeqsForGrahamTree.phy
 ## ugene did not work. Used aliview instead, which offered to pad 
 ## the sequences...fishy, why was this necessary?
 
-phyml -i allSeqsForGrahamTree_trimmed.phy
+phyml -h
+
+phyml -i allSeqsForGrahamTree_trimmed.phy -b 100
 
 ## did that work?
 
@@ -3193,21 +3196,50 @@ def makeLabel(otuInTree):
     return(glomTipLabel)
 
 aa = tree
-
 for i in otusInTree:
-    print(i)
     ## find it in a:
     aa = aa.replace(i, makeLabel(i))
 
+## we need to map the external read names to something
+## more informative:
+
 ## write that back out, see it plots okay:
 
-with open('grahamAllSeqsTreeRelabeled.nwk', 'w') as fout:
-    fout.write(aa)
 
-## try this with our tree drawing code above 
+## try this with our tree drawing code above
+
+
 
 ## looks good. We'll also need to give more information to the genbank sequences. 
 
-## and need to trim to ITS one on the genbank sequences
+## the place to do this is in the Newick file:
 
-## 
+genbankDict = {
+        'NR_160754': 'C.gloeosporioides',
+        'NR_160836': 'C.magnum',
+        'NR_120132': 'C.musae',
+        'NR_152271': 'C.orbiculare',
+        'DQ126254': 'G.graminicola.MO-178',
+        'DQ126248': 'G.graminicola.IN-300170',
+        'DQ126158': 'C.cereale.CA-62',
+        'DQ126226': 'C.cereale.NY-16',
+        'DQ126219': 'C.cereale.NJ-4990'
+        }
+
+## okay, how to use this to relabel the tree
+
+accs = list(genbankDict.keys())
+for i in accs:
+    ## find it in the newick string, change it 
+    r = re.compile(i+'\.[0-9]{,1}')
+    aa = r.sub(genbankDict[i], aa)
+
+## write it out:
+with open('grahamAllSeqsTreeRelabeled.nwk', 'w') as fout:
+    fout.write(aa)
+
+plt.close('all')
+ITStree = Phylo.read('grahamAllSeqsTreeRelabeled.nwk', 'newick')
+Phylo.draw(ITStree)
+
+
