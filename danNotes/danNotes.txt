@@ -3245,4 +3245,232 @@ Phylo.draw(ITStree)
 
 ##############################
 
-## check workMachine ssh key
+## can we get this up and running on my work machine?
+
+## the first step would be to try and repeat graham's NMS's
+
+source('http://bioconductor.org/biocLite.R') 
+## nope
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+library(BiocManager)
+
+BiocManager::install(version = '3.12')
+
+BiocManager::install('phyloseq')
+
+BiocManager::install('DESeq2')
+
+## that took forever. 
+
+## while we're at it can we get jupyter notebooks going on this machine:
+
+conda install -c conda-forge jupyter notebook
+
+## can this installation handle all the old data no problem?
+
+## let's find out by trying to repeat graham's nms for French flat. 
+
+## first, can we get the biom table in no problem?
+
+library(phyloseq)
+library(vegan)
+library('DESeq2')
+
+biom97 <- import_biom('/home/daniel/Documents/analyses/grass-endophyte-community/grass_97_wmeta.biom')
+
+biom97
+## looks good. 
+
+## so, we want to be able to subset by site, then run nmses on each categorized by 
+## the host
+
+## get our otu tables for each site
+
+## for 1:
+
+
+biom97_noCon = subset_samples(biom97, site != 'Control')
+
+## oh shit, we never saved our variance stabilized biom table. That was silly. 
+
+## so rerun:
+
+aa <- otu_table(biom97_noCon)@.Data
+bb <- varianceStabilizingTransformation(aa)
+bb[bb < 0] <- 0
+biom97vs <- biom97_noCon
+otu_table(biom97vs) <- otu_table(bb, taxa_are_rows = TRUE)
+biom97vs = filter_taxa(biom97vs, function(x) sum(x) > 0.1, T)
+
+#save(biom97vs, file='biom97vs.rda')
+load('biom97vs.rda')
+
+## okay, now how can we rerun the NMSes from this?
+
+## start with FF, for example:
+ffBiom <- subset_samples(biom97vs, site == "French_flat")
+
+biom97
+biom97vs
+ffBiom 
+
+metaMDS
+
+help(metaMDS)
+## I think sites are rows for vegan?
+data(package='vegan')
+data(dune)
+dune[1:5,1:5] ## yup
+
+## OTU tables from 
+otu_table(ffBiom)
+
+ffComm <- t(otu_table(ffBiom)@.Data)
+ffComm[1:5,1:5] ## yup, better
+
+
+ffCommNMS = metaMDS(ffComm)
+
+## pretty clean, stress = 0.17
+
+MDS1 <- ffCommNMS$points[,'MDS1']
+MDS2 <- ffCommNMS$points[,'MDS2']
+
+## color by host...
+## just to be sure the hosts line up properly:
+
+host = sample_data(ffBiom)[,'host']@.Data[[1]]
+hostNu <- sapply(host, function(x){as.numeric(x == "D. californica")+1})
+
+## I forget, can we use colors as numbers?:
+
+plot(MDS1, MDS2,
+    col=hostNu,
+    pch=19,
+    cex=2.0,
+)
+text(MDS1, MDS2-0.05, host)
+ordiellipse(ffCommNMS, host, col=c(2,1), lwd=3)
+
+names(table(host))
+
+plot(1:2,c(1,1), col=2)
+
+## hmm. Seems like pretty clean separation to me. 
+## might be due to the way I variance-stabilized.
+## as in, might have been due to shared rare OTUs. 
+## anyway, before I think about this too much
+## generalize into a function
+
+unique(sample_data(biom97vs)$site)
+
+
+load('biom97vs.rda')
+par(mfrow=c(2,2))
+for (i in c("French_flat","Hazel_Dell","Horse_Rock","Whidbey")){
+    sBiom <- subset_samples(biom97vs, site == i)
+    sComm <- t(otu_table(sBiom)@.Data)
+    sCommNMS = metaMDS(sComm)
+    MDS1 <- sCommNMS$points[,'MDS1']
+    MDS2 <- sCommNMS$points[,'MDS2']
+    host = sample_data(sBiom)[,'host']@.Data[[1]]
+    hostNu <- sapply(host, function(x){as.numeric(x == "D. californica")+1})
+    plot(MDS1, MDS2,
+        col=hostNu,
+        pch=19,
+        cex=2.0,
+        main=i,
+    )
+    text(MDS1, MDS2-0.05, host)
+    ordiellipse(sCommNMS, host, col=c(2,1), lwd=3)
+}
+
+## okay. So At french flat, things are more intermixed than the others, somehow. 
+## do we have more shared species at ff?
+
+## at french flat, shared otus in the variance stab are:
+
+ffBiom
+
+ffDanthBiom <- subset_samples(ffBiom, host == "D. californica")
+ffFestuBiom <- subset_samples(ffBiom, host == "F. roemeri")
+
+ffDanthBiom
+ffFestuBiom
+
+ffDanthBiomNo0 <- otu_table(ffDanthBiom)[rowSums(otu_table(ffDanthBiom)) > 0]
+ffFestuBiomNo0 <- otu_table(ffFestuBiom)[rowSums(otu_table(ffFestuBiom)) > 0]
+
+sum(rownames(ffDanthBiomNo0) %in% rownames(ffFestuBiomNo0))
+sum(rownames(ffFestuBiomNo0) %in% rownames(ffDanthBiomNo0))
+## they share 404 species out of 
+dim(ffDanthBiomNo0)
+dim(ffFestuBiomNo0)
+## 734 OTUs (Danth) and 857 OTUs (Festu)
+## wow, so they shared ~50% of their species? Is this normal?
+
+for (i in c("French_flat","Hazel_Dell","Horse_Rock","Whidbey")){
+    sBiom <- subset_samples(biom97vs, site == i)
+    DanthBiom <- subset_samples(sBiom, host == "D. californica")
+    FestuBiom <- subset_samples(sBiom, host == "F. roemeri")
+    DanthBiomNo0 <- otu_table(DanthBiom)[rowSums(otu_table(DanthBiom)) > 0]
+    FestuBiomNo0 <- otu_table(FestuBiom)[rowSums(otu_table(FestuBiom)) > 0]
+    cat(i)
+    cat(paste(" shared OTUs, both hosts: ", 
+          sum(rownames(FestuBiomNo0) %in% rownames(DanthBiomNo0)), "\n", sep=''))
+    cat("Out of: \n") 
+    cat(paste("Danthonia OTU total: ", nrow(DanthBiomNo0), "\n", sep=''))
+    cat(paste("Festuca OTU total: ", nrow(FestuBiomNo0), sep=''))
+    cat("\n\n")
+}
+
+## actually, it's kind of normal...at most of these sites the
+## hosts are sharing 1/3 or 1/2 of their OTUs
+
+
+## I think the way to do this is to sum the individual plots into one grand
+## site (so FF has only two rows, one for each host, with columns for OTUs) 
+## calculate BC distance between them. If graham's nmses are representative, then 
+## at FF we should see a lower BC between the two hosts than at other 
+## sites
+
+## how to do this in R? do we need to maintain the same colums to keep our 
+## dimensions intact to be comparable?
+
+vegdist
+
+rowSums(otu_table(ffDanthBiom))
+rowSums(otu_table(ffFestuBiom))
+
+aa <- rbind(rowSums(otu_table(ffDanthBiom)), rowSums(otu_table(ffFestuBiom)))
+dim(aa)
+vegdist(aa, method='bray')
+
+## generalize this:
+
+for (i in c("French_flat","Hazel_Dell","Horse_Rock","Whidbey")){
+    sBiom <- subset_samples(biom97vs, site == i)
+    sDanthBiom <- subset_samples(sBiom, host == "D. californica")
+    sFestuBiom <- subset_samples(sBiom, host == "F. roemeri")
+    aa <- rbind(rowSums(otu_table(sDanthBiom)), rowSums(otu_table(sFestuBiom)))
+    cat(paste("BC distance",i,"=", vegdist(aa, method='bray')[1], "\n", sep=' '))
+}
+
+vegdist(aa, method='bray')
+
+paste("BC distance between hosts at"+i)
+
+## another thing to look at here is how many of the indicator species are 
+## shared? If a higher proportion of species unique to site are shared,
+## also suggests some convergence on microbiomes
+
+dim(ffDanthBiomNo0 )
+
+dim(ffFestuBiomNo0 )
+
+## I think that settles that, there isn't really anything different 
+
+cat(i);cat('\n')
