@@ -1,0 +1,11 @@
+
+
+Building a new DB, current time: 12/17/2021 15:59:47
+New DB name:   /home/daniel/Documents/analyses/grass-endophyte-community/danNotes/BioI-6098_OConnor_34875.seq.txt
+New DB title:  BioI-6098_OConnor_34875.seq.txt
+Sequence type: Nucleotide
+Keep MBits: T
+Maximum file size: 1000000000B
+Adding sequences from FASTA; added 45 sequences in 0.001472 seconds.
+
+

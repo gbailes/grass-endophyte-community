@@ -3474,3 +3474,134 @@ dim(ffFestuBiomNo0 )
 ## I think that settles that, there isn't really anything different 
 
 cat(i);cat('\n')
+
+############ check graham's OTU pipeline ###############
+
+## we need to check graham's variance stabilization, see 
+## how different is from ours.
+
+## basically, I need to exactly recover his NMSes and see
+## why the are different from the ones I generated. 
+
+## some notes
+
+## I think the file of interest, as in the graphic we are trying to repeat is:
+"grass_host_nmds_facet.tiff"
+
+## this is on line 895 or so in Graham's text
+
+## if this is right, and if grahams notes are correct,
+## looks like this was done with presence/absence data?
+
+## so I'll work backward and try to collect all the code to create this...
+
+#### get a ref seq file in BASH ####
+
+## the closest thing we have to a reference seq file is:
+
+oldFasta="/home/daniel/Documents/analyses/grass-endophyte-community/otus_97_uclust_relabel.fasta"
+
+## I think we need to get rid of the size labels on this
+## otherwise it fits
+
+sed "s/;size=[0-9]*;//" <(tail $oldFasta) ## looks okay, do it
+
+sed "s/;size=[0-9]*;//" $oldFasta > otus_97_forPhyloseqRef.fasta
+
+################################################
+
+###### blasting ref seqs to mock community #####
+
+## my understanding is that we made a blastn database out of our 
+## mock sequences, then blasted our reference sequences against 
+## this and made removed all the strong matches to positive 
+## controls, because with index bleed we accidentally contaminated
+## the run with my mock community.   
+
+## so reconstructing graham's biom as used to make his NMS graphic
+## will only be possible if we can get or build that mock community
+## fasta...graham doesn't have it in the repo... do I have that somewhere? 
+
+## ah yes, in the old taiwan repo...
+
+#### make a mc blast database ####
+
+## bash
+
+## make our database for blast:
+makeblastdb -in BioI-6098_OConnor_34875.seq.txt -dbtype nucl -logfile dberrors.txt
+
+## now we need to blast our reference seqs against this
+
+## the goal is to be able to exclude anything that matches 
+## the positive controls, and to remove all contaminates
+
+refseqfilename="otus_97_forPhyloseqRef.fasta"
+
+blastn -query "otus_97_forPhyloseqRef.fasta" -db "BioI-6098_OConnor_34875.seq.txt" -out mc_matches.csv -outfmt 10 -max_target_seqs 1
+
+sed '1 i\qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore' mc_matches.csv -i
+#
+
+## check it
+libreoffice --calc mc_matches.csv &
+
+###############################################
+
+## and back into R, did this work okay?
+
+library(phyloseq)
+library(Biostrings)
+
+biom <- '/home/daniel/Documents/analyses/grass-endophyte-community/grass_97_wmeta.biom'
+refseqfilename="otus_97_forPhyloseqRef.fasta"
+grass_biom <- import_biom(biom, refseqfilename=refseqfilename)
+grass_biom_eco <- subset_samples(grass_biom, site != "Control")
+
+
+blast <- read.csv('mc_matches.csv')
+
+blast <- read.csv('/Users/grahambailes/grass_endophyte_community/alt_biom/mock_community/mcblast_all_97.csv', header=T)
+
+goodblast <- blast[blast$pident > 95 & blast$length > 100,]
+
+
+
+dim(blast)
+
+dim(goodblast)
+
+#####
+
+pcotus <- !(rownames(otu_table(grass_biom)) %in% goodblast$qseqid)
+
+ 
+grass.cont.rem <- grass_biom_eco
+
+grass_biom_rem_mc <- prune_taxa(pcotus, grass.cont.rem) 
+
+grass_biom_vs_cont_rem <- DESeq_varstab(grass_biom_rem_mc, ~site) 
+## ^ this what he used to make grass_host_nmds_facet.tiff 
+
+## v below this he removes negative taxa and goes P/A 
+grass_mat <- t(otu_table(grass_biom_vs_cont_rem)@.Data) 
+grass_mat <- grass_mat[,colSums(grass_mat)>0] 
+grass_mat_PA <- grass_mat
+grass_mat_PA[grass_mat_PA > 0] <- 1 
+grass_dist_pa <- vegdist(grass_mat_PA, method = 'jaccard')
+grass_ord <- metaMDS(grass_mat_PA, distance = 'jaccard', try = 20, trymax = 100)
+## but does he ever use this?
+
+## seems to go the vegan route instead
+fd_host <- plot_ordination(grass_biom_vs_cont_rem, grass_ord, color = "host")
+fd_host <- fd_host + theme_bw() + stat_ellipse()
+fd_host <- fd_host + theme(legend.text = element_text(face = "italic"))+
+  theme(legend.text=element_text(size=13), legend.title = element_text(size = 14))
+plot(fd_host)
+
+## so he has two phyloseq objs at this point of interest, one sort of according my 
+## pipelines from the 2017 paper that tried to reduce the signature of 
+## index hopping in our data, and one on the raw results of the DEseq2 results
+ 
+
+
