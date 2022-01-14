@@ -3603,5 +3603,84 @@ plot(fd_host)
 ## pipelines from the 2017 paper that tried to reduce the signature of 
 ## index hopping in our data, and one on the raw results of the DEseq2 results
  
+####### get in sync with graham ######
+
+## we need to sync up with graham's analysis. Start by creating an environment with 
+## using the details from his environment:
+
+
+conda create -n grahamEnv
+
+conda config --add channels conda-forge
+conda config --add channels bioconda
+
+## graham is using 4.0.2
+## R version 4.0.2 (2020-06-22) 
+
+## my in-house version is 4.0.4. 
+## so probably doesn't make a difference, but can get a local version 
+## working instead? Then we can build the environment from scratch.
+
+conda search r-base
+conda search r-base=4.0.2
+conda install r-base=4.0.2
+
+## that worked surprisingly well. Now for all of his other packages... is there an easy 
+## way to do this?
+
+## meh. Let's build as we go, install packages as we need them, and make sure that 
+## they match graham's setup:
+
+## to start, we need vegan:
+
+conda search vegan
+
+conda search vegan=2.5-7
+
+conda install -c conda-forge r-vegan=2.5_7
+
+## that didn't work. what happens if we install from within R?
+
+conda activate grahamEnv
+
+R
+
+install.packages("vegan")
+
+library("vegan")
+
+sessionInfo()
+
+## vegan version is 2.5-7, which is what graham is using anyway. great
+
+## does this show up in our environment file?
+
+conda env export
+
+## we also didn't check if our native installation works...later if necessary
+
+## graham's version of phyloseq:
+
+## phyloseq_1.39.1
+
+conda search phyloseq=1.39.1
+
+## not found...hmmm. Let's see what bioconductor does:
+
+install.packages("BiocManager")
+
+library("BiocManager")
+
+BiocManager::install("phyloseq")
+
+## I remember this takes a while...
+
+library("phyloseq")
+
+load("grass_biom_vs_cont_rem.rda")
+
+## anway, let's load grahams object:
+
+load(grass_biom_vs_cont_rem.rda
 
 
