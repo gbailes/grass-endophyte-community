@@ -3736,6 +3736,8 @@ print(fd_host)
 
 ## try again with FF only
 
+## 
+png("ff_overlapNMS.png")
 aa = subset_samples(grass_biom_vs_cont_rem, site == 'French_flat')
 grass_mat <- t(otu_table(aa)@.Data) # transpose to display as samples are rows
 grass_mat <- grass_mat[,colSums(grass_mat)>0] # select taxa with non-zeroabundance
@@ -3747,9 +3749,92 @@ fd_host <- fd_host + theme_bw() + stat_ellipse()
 fd_host <- fd_host + theme(legend.text = element_text(face = "italic"))+
   theme(legend.text=element_text(size=13), legend.title = element_text(size = 14))
 print(fd_host)
+dev.off()
 
-## great, that's fairly convincing. 
+## for comparison:
+unique(sample_data(grass_biom_vs_cont_rem)$site)
 
-## now figure out why they overlap?
+#siteEx="Hazel_Dell"
+siteEx="Horse_Rock"
+aa = subset_samples(grass_biom_vs_cont_rem, site == siteEx)
+grass_mat <- t(otu_table(aa)@.Data) # transpose to display as samples are rows
+grass_mat <- grass_mat[,colSums(grass_mat)>0] # select taxa with non-zeroabundance
+grass_mat_PA <- grass_mat
+grass_mat_PA[grass_mat_PA > 0] <- 1 # convert to presence-absence
+grass_ord <- metaMDS(grass_mat_PA, distance = 'jaccard', try = 20, trymax = 100)
+fd_host <- plot_ordination(aa, grass_ord, color = "host")
+fd_host <- fd_host + theme_bw() + stat_ellipse()
+fd_host <- fd_host + theme(legend.text = element_text(face = "italic"))+
+  theme(legend.text=element_text(size=13), legend.title = element_text(size = 14))
+print(fd_host)
 
-## also maybe do the NMS of the entire data set and color or circle the french flat data. 
+## great, that's fairly convincing. Do the permanovas agree?
+
+## forget, what does vegan want?
+data(dune) 
+head(dune) 
+
+dune[0:5,0:5]
+
+t(otu_table(grass_biom_vs_cont_rem))[0:5,0:5]
+
+## I think that's what they need. 
+
+i="Horse_Rock"
+
+siteEx="French_Flat"
+
+
+cat(unique(sample_data(grass_biom_vs_cont_rem)$site))
+
+doubleHostSites <- c("French_flat","Hazel_Dell","Horse_Rock","Whidbey")
+
+sink("permanovasByHost.txt")
+for (i in doubleHostSites){
+    print(i)
+    subbedBiom <- subset_samples(grass_biom_vs_cont_rem, site == i)
+    otuCom <- t(otu_table(subbedBiom))
+    hostVector <- sample_data(subbedBiom)$host
+    print(adonis(otuCom ~ hostVector, permutations = 10000, method = 'jaccard'))
+}
+sink()
+
+## meh, as usual, the permanova seems very underpowered, or maybe there just isn't much of 
+## a difference. But FF is tiny bit lower (R2 = 0.124) than the other two-host sites 
+## (R2 = 0.16-17)
+
+
+## well, can we eleminate this difference by subtracting a species?
+
+## at FF, what OTUs are shared by both hosts?
+
+## 
+
+ffbiom <- subset_samples(grass_biom_vs_cont_rem, site == "French_flat")
+
+ff_fest <- subset_samples(ffbiom, host == "F. roemeri")
+fffnoZs <- otu_table(ff_fest)[rowSums(otu_table(ff_fest) != 0),]
+
+ff_danth <- subset_samples(ffbiom, host == "D. californica")
+ffdnoZs <- otu_table(ff_danth)[rowSums(otu_table(ff_danth) != 0),]
+
+dim(fffnoZs)
+dim(ffdnoZs)
+
+rownames(otu_table(ff_fest))
+
+fffnoZs[1:10,1:10]
+
+rownames(fffnoZs) ## for some reason we just screwed up the OTUs - there are now numerous repeats.
+
+## ugh. Onward. 
+
+
+
+rownames(ffdnoZs)
+
+length(rownames(otu_table(grass_biom_vs_cont_rem)))
+
+length(unique(rownames(otu_table(grass_biom_vs_cont_rem))))
+
+rownames(otu_table(grass_biom_vs_cont_rem))
