@@ -3808,33 +3808,200 @@ sink()
 
 ## at FF, what OTUs are shared by both hosts?
 
-## 
+ffbiom <- subset_samples(grass_biom_vs_cont_rem, site == "French_flat")
+ff_fest <- subset_samples(ffbiom, host == "F. roemeri")
+ffFnoZs <- otu_table(ff_fest)
+ffFnoZs <- ffFnoZs[(rowSums(fffnoZs) > 0),]
+
+ff_danth <- subset_samples(ffbiom, host == "D. californica")
+ffDnoZs <- otu_table(ff_danth)
+ffDnoZs <- ffDnoZs[(rowSums(ffDnoZs) > 0),]
+
+dim(ffFnoZs)
+dim(ffDnoZs)
+
+sum(row.names(ffFnoZs) %in% row.names(ffDnoZs))
+## wow, 371 OTUs
+
+## is this any different from the other sites with two hosts? 
+
+doubleHostSites <- c("French_flat","Hazel_Dell","Horse_Rock","Whidbey")
+
+siteX = doubleHostSites[4]
+sharedbiom <- subset_samples(grass_biom_vs_cont_rem, site == siteX)
+sharedbiom_fest <- subset_samples(sharedbiom, host == "F. roemeri")
+FnoZs <- otu_table(sharedbiom_fest)
+FnoZs <- FnoZs[(rowSums(fffnoZs) > 0),]
+sharedbiom_danth <- subset_samples(sharedbiom, host == "D. californica")
+DnoZs <- otu_table(sharedbiom_danth)
+DnoZs <- DnoZs[(rowSums(DnoZs) > 0),]
+dim(FnoZs)
+dim(DnoZs)
+sum(row.names(FnoZs) %in% row.names(DnoZs))
+
+## hazel dell - 280 shared species
+## horse rock - 259 shared species
+## whidbey - 249 shared species
+
+## so there are ~100 more shared otus at that 
+## site
+
+## here's another question, are the shared OTUs at 
+## FF different? 
+## Do they contain more colletotrichums
+## I think we already know the some of the answer to 
+## that.
+
+## of particular interest are the OTUS in the colletotrichum
+## clade. How common are they? The most interesting is 
+## the shared otu, OTU1265
+
+OTU3285.bothHosts.FF.festu*
+OTU3872.bothHosts.FF.festu
+OTU2526.bothHosts.FF.festu*
+OTU2422.bothHosts.FF.festu*
+OTU3871.festu.FF.festu*
+OTU1265.bothHosts.FF.bothHosts*
+OTU808.bothHosts.FF.festu
+OTU3721.bothHosts.FF.festu
+OTU1202.bothHosts.FF.festu*
+OTU2023.bothHosts.FF.festu*
+OTU1028.bothHosts.FF.festu*
+OTU2823.bothHosts.FF.festu
+OTU3379.bothHosts.FF.festu
+OTU3169.bothHosts.FF.festu*
+OTU3720.bothHosts.FF.festu*
+OTU1468.bothHosts.FF.festu
+OTU3282.bothHosts.FF.festu
+OTU620.festu.FF.festu*
+
+
+grep(1265, ffFnoZs)
+ffFnoZs[grep(1265, row.names(ffFnoZs)),]
+ffDnoZs[grep(1265, row.names(ffDnoZs)),]
+
+## huh. it is in there, in two sites for
+## really doesn't look like the most important
+## OTU here for keeping these two sites
+## close together on the NMS
+
+## just checking, is this really the only 
+## of the above colletotrichums in the danthonia?
+
+otuN <- 3720
+otuN <- 2526
+
+grep(otuN, row.names(ffFnoZs))
+grep(otuN, row.names(ffDnoZs))
+
+ffFnoZs[grep(otuN, row.names(ffFnoZs)),]
+ffDnoZs[grep(otuN, row.names(ffDnoZs)),]
+ffFnoZs[grep(otuN, row.names(ffFnoZs)),]
+sum(row.names(ffFnoZs) %in% row.names(ffDnoZs))
+
+## looks like it might be
+
+## if there is time, it may be useful to 
+## merge these colletos into one taxa, 
+## with something like:
+
+GP.chl.merged = merge_taxa(GP.chl, taxa_names(GP.chl)[1:5])
+## https://joey711.github.io/phyloseq/preprocess.html
+
+## so...where were we?
+
+
+## basically, we need to find the more influential
+## taxa that are shared by both sites. 
+
+## it seems like the best thing here would be 
+## to subset to just shared taxa, and somehow 
+## rank by abundances. So maybe merge by host
+## into two columns, etc:
+
+
+sum(row.names(ffFnoZs) %in% row.names(ffDnoZs))
+
+sharedOTUs <- row.names(ffFnoZs)[row.names(ffFnoZs) %in% row.names(ffDnoZs)]
+
+head(ffFnoZs)
 
 ffbiom <- subset_samples(grass_biom_vs_cont_rem, site == "French_flat")
 
-ff_fest <- subset_samples(ffbiom, host == "F. roemeri")
-fffnoZs <- otu_table(ff_fest)[rowSums(otu_table(ff_fest) != 0),]
+ffOnlySharedBiom <- prune_taxa(sharedOTUs, ffbiom)
 
-ff_danth <- subset_samples(ffbiom, host == "D. californica")
-ffdnoZs <- otu_table(ff_danth)[rowSums(otu_table(ff_danth) != 0),]
+## I think we can merge sites by host, basically summing the 
+## danth and festuca numbers:
 
-dim(fffnoZs)
-dim(ffdnoZs)
+ffOnlySharedBiom 
 
-rownames(otu_table(ff_fest))
+head(sample_data(ffOnlySharedBiom ))
 
-fffnoZs[1:10,1:10]
+aa <- merge_samples(ffOnlySharedBiom, "host")
 
-rownames(fffnoZs) ## for some reason we just screwed up the OTUs - there are now numerous repeats.
+head(otu_table(aa))
 
-## ugh. Onward. 
+bb <- t(otu_table(aa))
+
+write.csv(bb, file='ffSharedAbundances.csv')
+
+## graham used jaccard distances. 
+## as per vegan's docs, they use a 
+## version of jacard that is weighted 
+## by relative abundances,
+## https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/vegdist
+
+## so, abundances should matter here. 
+## equal abundances should draw samples 
+## together in similarity space
+
+## vast differences should do the opposite
+
+## so, divide one column by the other, and 
+## those with ratios close to one are 
+## probably pretty important
+
+relativeDiff <- bb[,1] / bb[,2]
+relativeDiff <- as.data.frame((bb[,1] / bb[,2])
+colnames(relativeDiff) <- "ratio"
+
+head(relativeDiff )
+
+sort(c(7,3,4))
+
+order(c(7,3,4))
+
+
+dd <- relativeDiff[order(relativeDiff$ratio),,drop=FALSE]
+
+
+bb['OTU1587:35grass',]
+
+hist(relativeDiff$ratio, breaks=20)
+
+hist(relativeDiff$ratio, breaks=80)
+
+hist(relativeDiff$ratio, breaks=160, xaxp = c(0,160,160))
+
+## huh. not sure what do with all that... 
+
+## basically we have quite a few (~100 species?) making these two 
+## sites similar. 
+
+## no single/few silver bullet OTU(s),
+
+## hard to write about. Maybe graham coudl run it through funguild. 
+
+## but I fucking hate funguild. 
+
+## one question is, are these species the ones that make FF unique? 
+## or are they just "weeds"...
+
+## next time, find OTUs that are only present at FF, and check the 
+## intersection with these sharedFF species.
+hist(relativeDiff$ratio, breaks=40, xaxp = c(0,1,80))
 
 
 
-rownames(ffdnoZs)
 
-length(rownames(otu_table(grass_biom_vs_cont_rem)))
 
-length(unique(rownames(otu_table(grass_biom_vs_cont_rem))))
-
-rownames(otu_table(grass_biom_vs_cont_rem))
