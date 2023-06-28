@@ -7,7 +7,6 @@
 
 ## he has scripts here:
 
-
 ## keeping a github repo here:
 https://github.com/danchurch/nanoporeHostDepletionSpruce
 
@@ -288,6 +287,9 @@ contig  number      sum   min    max    std  mean  median    N50
 ## contigs is indicative that they were rejected 
 ## after alignment, usually around 500-600 bp in our case.
 
+## I guess this means we would need to exclude low-length reads,
+## to exclude the non-targeted reads.
+
 
 ####### try on our data #####
 
@@ -295,4 +297,48 @@ contig  number      sum   min    max    std  mean  median    N50
 
 ## first, get our combo haploid + mitochond + chloropl genome:
 
+## can we index this?
 
+genome=/media/vol1/daniel/spruce/Pabies_repeatsCompressed_mt_ch.fa
+minimap2 -d Pabies_repeatsCompressed_mt_ch.mmi $genome
+
+## we'll play with chris's bulk fast5 file that he created:
+
+ln -s /media/vol2/chris/Pabies_tests/bulk_fast5_files/MinION-PC_20230621_1522_FAU29445_MN40608_sequencing_run_bigger_e77dd4cd_5395a225.fast5 \
+/media/vol1/daniel/hostDepletion/ourData/picea.fast5
+
+## we need to change our minknow (not readfish) toml. Since we are not 
+## actually sequencing, we can continue to mess with the old 106 chemistry 
+## config file
+
+vim /opt/ont/minknow/conf/package/sequencing/sequencing_MIN106_DNA.toml
+## as above, we add/substitute the line:
+
+"""
+simulation = "/media/vol1/daniel/hostDepletion/ourData/picea.fast5"
+"""
+
+## now we need a readfish toml file:
+
+cp /media/vol1/daniel/hostDepletion/human_chr_selection.toml \
+/media/vol1/daniel/hostDepletion/ourData/
+mv human_chr_selection.toml bigGenome_depletion.toml 
+
+## update the chemistry config file for guppy
+config_name = "dna_r10.4.1_e8.2_400bps_fast.cfg"
+reference = "/media/vol1/daniel/hostDepletion/ourData/Pabies_repeatsCompressed_mt_ch.mmi"
+
+## renamed it to "depleteHost"
+
+## but what do we do about the targets? we just want to unblock everything that 
+## maps to the reference...
+
+## most of this information is here:
+https://github.com/LooseLab/readfish/blob/dev_staging/TOML.md#local-basecalling
+
+## there is a difference between unblocking (rejecting) a read, and receiving no 
+## further information from that read ("stop_receiving"). I guess the reason 
+## we got a lot of short reads in that experiment is because 
+
+
+## break
