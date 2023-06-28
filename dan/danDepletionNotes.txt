@@ -1,0 +1,298 @@
+## Chris Nuske has been working really hard to 
+## get adaptive sampling working for the lab.
+## let's see if we can catch up with Chris a bit,
+
+## we'll work mostly on the lab nanopore computer,
+## so readfish installs, etc will be there.
+
+## he has scripts here:
+
+
+## keeping a github repo here:
+https://github.com/danchurch/nanoporeHostDepletionSpruce
+
+## first step is to get ReadFish installed in a conda environment,
+## on my account on the lab computer.
+
+## we'll follow their instructions on github:
+https://github.com/looselab/readfish
+
+## we'll put a copy of their yaml file on the labcomp here:
+
+cd /media/vol1/daniel/hostDepletion
+
+conda env create -f readfish_env.yml
+
+conda activate readfish
+
+readfish
+
+## seems to work. 
+
+## according to Chris, it's important to add ourselves
+## to the minknow user group:
+
+sudo usermod -a -G minknow test
+
+## we can watch minknow on our extra office computer
+## do this by clicking on lower left "connection manager"
+## and entering the nanoComp computer IP addess:
+132.180.112.115
+
+
+
+## to test it out, we need a bulk fast5 file
+## chris already downloaded a sample bulk fast five,
+## it's here
+
+ls /home/chris/PLSP57501_simulation.fast5
+
+ln -s /home/chris/PLSP57501_simulation.fast5 /media/vol1/daniel/hostDepletion/sampleBulk.fast5 
+
+
+## we need a TOML file. instructions are here:
+https://github.com/LooseLab/readfish/blob/dev_staging/TOML.md
+
+## chris has already worked through a lot of the gotchas
+## on the TOML file...
+
+## some are here:
+ls /home/chris/*.toml
+
+## also one here, but not what we need, I think.
+/media/vol2/chris/channels.toml
+
+
+## this might be a good one:
+less /home/chris/pabies_depletion.toml
+
+## let's make a copy of that for us to play with:
+
+cd /media/vol1/daniel/hostDepletion/
+
+cp  /home/chris/pabies_depletion.toml /media/vol1/daniel/hostDepletion/
+
+## what do we need to change for this?
+
+## the tutorial also mentions using existing toml files 
+## from  minknow for templates:
+
+cd /opt/ont/minknow/conf/package/sequencing/
+
+## ah, and I see these sequencing toml files are very different
+## from the readfish toml files for adaptice samplig
+
+## chris has already modified this one to look for for his 
+## bulkfast5 example like we are doing now:
+
+less /opt/ont/minknow/conf/package/sequencing/sequencing_MIN106_DNA.toml
+
+## back it up, then play with it
+
+cd /opt/ont/minknow/conf/package/sequencing/
+
+cp sequencing_MIN106_DNA.toml sequencing_MIN106_DNA.toml.bk
+chmod 444 sequencing_MIN106_DNA.toml.bk
+
+## changing file to find my bulk fast5 file
+## chris already change alignment time limit settings
+
+## we then setup a run using the config test flowcell, 
+## and setting the flow cell type to match whatever 
+## sequencing toml file we modified (in this case MIN106 DNA, above)
+
+## run started.
+
+## we should be able to eject (reject) all reads currently in 
+## pores with readfish:
+
+readfish unblock-all --device MN40608 --experiment-name "Testing ReadFish Unblock All"
+
+## the device id is the same as the "position" reported by minknow
+
+## do I need to match the experiment name? nope
+
+## that should just mean that all reads are rejected
+
+## funny, it looks to me like it is still reported the basecalling
+## from these unblocked reads, just as very short sequences.
+
+## anyway, looks like it is working. 
+
+## stop run and clean up the files,,,
+
+## files are usually stored here:
+/var/lib/minknow/data
+
+## and now let's test their example for enrichment/depletion
+## with human chromosome:
+
+## their toml file for enriching a human chromosome:
+
+wget https://raw.githubusercontent.com/LooseLab/readfish/master/examples/human_chr_selection.toml
+
+## we need a human genome and mmi index of it. I think chris 
+## found exactly the same genome as is used in their 
+## example...
+
+ln -s /home/chris/hg38.fa /media/vol1/daniel/hostDepletion/hg38.fa
+
+## make an mmi
+minimap2 -d hg38.mmi hg38.fa
+
+## put this in our readfish toml file 
+
+## check the validity of our toml file:
+
+readfish validate human_chr_selection.toml
+
+## looks good. 
+
+## started a simulation run on minknow. 
+## now with readfish
+
+readfish targets --device MN40608 \
+              --experiment-name "RU Test basecall and map" \
+              --toml /media/vol1/daniel/hostDepletion/human_chr_selection.toml \
+              --log-file ru_test.log
+
+
+## doesn't work, freezes. possibly due to the guppy server issues 
+## chris mentioned. 
+
+## not really sure what this is, a pipe or somethiing,
+## but I think we need to change its permissions:
+
+sudo chmod 775 /tmp/.guppy/5555
+
+#sudo chmod 777 /tmp/.guppy/5555
+
+## chris has this line for starting a new basecall server:
+
+guppy_basecall_server --config dna_r9.4.1_450bps_fast.cfg -p 5555 -l /tmp/guppy -x 'cuda:0'
+
+
+## already in use. Stop run and try again. works, but do we really need two guppy 
+## servers running?
+
+## because of the 
+## I had to change the following to the readfish toml:
+
+host= "ipc:///tmp/.guppy/"
+
+## seems to be running. I killed the other manually and it just started again. 
+## not sure what to do there. Just leave it I guess
+
+## anyway, with the new basecaller, and the new toml file that looks for it,
+## does the above command now work? 
+
+conda activate readfish
+readfish targets --device MN40608 \
+              --experiment-name "RU Test basecall and map" \
+              --toml /media/vol1/daniel/hostDepletion/human_chr_selection.toml \
+              --log-file ru_test.log
+
+## nope...
+
+## this issue seems pertinent:
+https://github.com/LooseLab/readfish/issues/240
+
+## perhaps also pertinent:
+https://github.com/LooseLab/readfish/issues/221
+
+## they mention that our guppy server and client software should line up, version-wise:
+guppy_basecall_server --version ## gives us version 6.5.7
+pip list | grep pyguppy  ## version 6.4.2
+## not the same
+
+## does this help?
+pip install ont-pyguppy-client-lib==6.5.7
+
+## they do some diagnostics
+
+## is this necessary to do every time we want to do a 
+## new experiment?
+ls -l /tmp/.guppy/5555
+
+sudo chmod 775 /tmp/.guppy/5555
+
+less /opt/ont/guppy/data/dna_r9.4.1_450bps_fast.cfg
+
+## they test their guppy server/client with this script:
+python -c 'from pyguppy_client_lib.pyclient import PyGuppyClient as PGC; \
+           c = PGC("ipc:///tmp/.guppy/5555", "dna_r9.4.1_450bps_fast.cfg"); \
+           c.connect(); print(c)'
+
+sudo systemctl status guppyd
+
+## okay, works
+
+
+readfish targets --device MN40608 \
+              --experiment-name "RU Test basecall and map" \
+              --toml /media/vol1/daniel/hostDepletion/human_chr_selection.toml \
+              --log-file ru_test.log
+
+## and works!!! yay!
+
+## to review,  have to reset user permissions every time guppy server is
+## restarted on the socket ./tmp/.guppy/5556
+## also need to make sure guppy versions (client and server) match
+
+## so what's next?
+
+## where is the data for this? do I have to stop the run?
+
+## the reads are delivered in batches, here:
+
+/var/lib/minknow/data/zoop5/no_sample/20230628_1557_MN40608_zoop5_f31f0515/fast5_pass
+
+TOML="/media/vol1/daniel/hostDepletion/human_chr_selection.toml"
+reads="/var/lib/minknow/data/zoop5"
+
+readfish summary $TOML $reads
+
+## looks like this:
+
+contig  number      sum   min    max    std  mean  median    N50
+  chr1    5994  3759112   153  45338   1458   627     487    532
+ chr10    2959  1969533   154  49075   2072   666     488    537
+ chr11    2949  2046589   200  46773   1861   694     501    561
+ chr12    4300  2523930   103  49516   1361   587     494    522
+ chr13    2176  1333880   184  39207   1442   613     484    520
+ chr14    2917  1940354   179  52401   1949   665     501    543
+ chr15    3274  1804635    94  46421   1058   551     472    498
+ chr16    1554   970043   192  53194   1912   624     473    517
+ chr17    2704  1571430   199  53051   1435   581     486    518
+ chr18    2847  1554361   140  15657    612   546     482    503
+ chr19    1210   834025   159  21556   1307   689     487    583
+  chr2    5918  3675999   130  52366   1354   621     489    530
+ chr20    1524  1092416   178  49450   2223   717     496    562
+ chr21      30   212798   469  38881   8723  7093    4316  14064
+ chr22      55   423294   388  58385  11798  7696    3706  15818
+  chr3    5608  3597901   144  61175   1558   642     503    541
+  chr4    6637  4105216   155  55008   1667   619     492    535
+  chr5    4607  3008922   216  43932   1476   653     494    542
+  chr6    4001  2628431   166  54594   1754   657     492    538
+  chr7    4103  2343278   145  49974   1057   571     498    524
+  chr8    3607  2372494   207  48653   1691   658     493    545
+  chr9    2988  1966598   193  46570   1829   658     482    532
+  chrM     169   174679   273  16400   2092  1034     543   1135
+  chrX    4967  3053079   152  52969   1627   615     479    523
+  chrY      14    10745   372   2246    499   768     665    993
+
+
+## not sure what the "number" column indicates
+## but the thing to look for is the median/mean/n50
+## the low average read length of the other (not 21/22)
+## contigs is indicative that they were rejected 
+## after alignment, usually around 500-600 bp in our case.
+
+
+####### try on our data #####
+
+## great, so why doesn't it work with our genome?
+
+## first, get our combo haploid + mitochond + chloropl genome:
+
+
