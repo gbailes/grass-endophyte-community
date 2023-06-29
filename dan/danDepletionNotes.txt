@@ -573,12 +573,16 @@ readfish targets --device MN40608 \
 
 TOML="/media/vol1/daniel/hostDepletion/human_chr_depleteEntireGenome.toml"
 reads="/var/lib/minknow/data/zoop9"
-
 readfish summary $TOML $reads  
+
 ## saving as 
 readfishSummary_human_chr_depleteGenome.txt
 
 
+## okay, so how do recover the reads that are not from the genome?
+
+## seems like the way to do it is to exclude all small reads (<1000)
+## align the rest to the reference
 
 
 ####### try on our data #####
@@ -587,6 +591,8 @@ readfishSummary_human_chr_depleteGenome.txt
 
 ## first, get our combo haploid + mitochond + chloropl genome:
 
+cd /media/vol1/daniel/hostDepletion/ourData
+
 ## can we index this?
 
 genome=/media/vol1/daniel/spruce/Pabies_repeatsCompressed_mt_ch.fa
@@ -594,8 +600,14 @@ minimap2 -d Pabies_repeatsCompressed_mt_ch.mmi $genome
 
 ## we'll play with chris's bulk fast5 file that he created:
 
-ln -s /media/vol2/chris/Pabies_tests/bulk_fast5_files/MinION-PC_20230621_1522_FAU29445_MN40608_sequencing_run_bigger_e77dd4cd_5395a225.fast5 \
+ls -lh /media/vol2/chris/Pabies_tests/bulk_fast5_files/MinION-PC_20230621_1522_FAU29445_MN40608_sequencing_run_bigger_e77dd4cd_5395a225.fast5
+
+## it's precious. let's make a copy of it:
+
+cp /media/vol2/chris/Pabies_tests/bulk_fast5_files/MinION-PC_20230621_1522_FAU29445_MN40608_sequencing_run_bigger_e77dd4cd_5395a225.fast5 \
 /media/vol1/daniel/hostDepletion/ourData/picea.fast5
+
+chmod 444 picea.fast5
 
 ## we need to change our minknow (not readfish) toml. Since we are not 
 ## actually sequencing, we can continue to mess with the old 106 chemistry 
@@ -603,22 +615,128 @@ ln -s /media/vol2/chris/Pabies_tests/bulk_fast5_files/MinION-PC_20230621_1522_FA
 
 vim /opt/ont/minknow/conf/package/sequencing/sequencing_MIN106_DNA.toml
 
+## this might cause issues, because we are telling guppy that this is a 
+## 10.4 cell?
+
+## let's see
+
 ## as above, we add/substitute the line:
 
 """
 simulation = "/media/vol1/daniel/hostDepletion/ourData/picea.fast5"
 """
 
-## now we need a readfish toml file:
+## first let's try enriching for chloropolasts:
+
+>chloroplast
+
+# spruce_chloroplastEnrichment.toml
+[caller_settings]
+config_name = "dna_r10.4.1_e8.2_400bps_fast.cfg"
+host = "ipc:///tmp/.guppy/"
+port = 5555
+
+[conditions]
+reference = "/media/vol1/daniel/hostDepletion/ourData/Pabies_repeatsCompressed_mt_ch.mmi"
+
+[conditions.0]
+name = "enrichChloroplast"
+control = false
+min_chunks = 0
+max_chunks = inf
+targets = ["chloroplast"]
+single_on = "stop_receiving"
+multi_on = "stop_receiving"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "proceed"
+no_map = "proceed"
+
+## check this file
+readfish validate spruce_chloroplastEnrichment.toml
+
+## server/client ok? we have a new flow cell/chemistry
+
+python -c 'from pyguppy_client_lib.pyclient import PyGuppyClient as PGC; \
+           c = PGC("ipc:///tmp/.guppy/5555", "dna_r10.4.1_e8.2_400bps_fast.cfg"); \
+           c.connect(); print(c)'
+
+## nope
+
+## FLO-MIN114
+
+## I think we need to restart the guppy server (and client?)
+
+guppy_basecall_server --config dna_r10.4.1_e8.2_400bps_fast.cfg -p 5555 -l /tmp/guppy -x 'cuda:0'
+
+## but I don't want to start a new server if possible to avoid. 
+## I think we need to alter the minknow toml file:
+
+cd /opt/ont/minknow/conf/package/sequencing
+
+cp sequencing_MIN114_DNA_e8_2_400K.toml sequencing_MIN114_DNA_e8_2_400K.toml.bk
+
+## and add in the simulation setting:
+vim /opt/ont/minknow/conf/package/sequencing/sequencing_MIN114_DNA_e8_2_400K.toml
+
+"""
+simulation = "/media/vol1/daniel/hostDepletion/ourData/picea.fast5"
+"""
+
+## restarted the flowcell
+
+## did that help?
+
+python -c 'from pyguppy_client_lib.pyclient import PyGuppyClient as PGC; \
+           c = PGC("ipc:///tmp/.guppy/5555", "dna_r10.4.1_e8.2_400bps_fast.cfg"); \
+           c.connect(); print(c)'
+
+## nope
+
+ls -l /tmp/.guppy/5555
+
+sudo chmod 775 /tmp/.guppy/5555
+
+readfish targets --device MN40608 \
+              --experiment-name "enrichChloroplast" \
+              --toml spruce_chloroplastEnrichment.toml \
+              --log-file chloro_test.log
+
+#### try entire genome depletion ####
 
 cp /media/vol1/daniel/hostDepletion/human_chr_selection.toml \
 /media/vol1/daniel/hostDepletion/ourData/
 mv human_chr_selection.toml bigGenome_depletion.toml 
 
-## update the chemistry config file for guppy
+
+sudo systemctl restart guppyd
+sudo systemctl status guppyd
+
+## can't get guppy to take the new chemistry...ugh. 
+
+
+## "bigGenome_depletion.toml":
+
+[caller_settings]
 config_name = "dna_r10.4.1_e8.2_400bps_fast.cfg"
+host = "ipc:///tmp/.guppy/"
+port = 5555
+
+[conditions]
 reference = "/media/vol1/daniel/hostDepletion/ourData/Pabies_repeatsCompressed_mt_ch.mmi"
-## renamed it to "depleteHost"
+
+[conditions.0]
+name = "depleteSpruceHost"
+control = false
+min_chunks = 0
+max_chunks = inf
+targets = []
+single_on = "unblock"
+multi_on = "unblock"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "proceed"
+no_map = "stop_receiving"
 
 ## but what do we do about the targets? we just want to unblock everything that 
 ## maps to the reference...
@@ -626,5 +744,6 @@ reference = "/media/vol1/daniel/hostDepletion/ourData/Pabies_repeatsCompressed_m
 ## most of this information is here:
 https://github.com/LooseLab/readfish/blob/dev_staging/TOML.md#local-basecalling
 
+>chloroplast
 
-
+## 
