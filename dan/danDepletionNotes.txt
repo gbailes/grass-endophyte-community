@@ -88,10 +88,17 @@ less /opt/ont/minknow/conf/package/sequencing/sequencing_MIN106_DNA.toml
 
 ## back it up, then play with it
 
+
 cd /opt/ont/minknow/conf/package/sequencing/
 
 cp sequencing_MIN106_DNA.toml sequencing_MIN106_DNA.toml.bk
 chmod 444 sequencing_MIN106_DNA.toml.bk
+
+## changed the following, under # Sequencing Feature Settings # --> # basic_settings # --> [custom_settings]
+
+"""
+simulation = "/media/vol1/daniel/hostDepletion/sampleBulk.fast5"
+"""
 
 ## changing file to find my bulk fast5 file
 ## chris already change alignment time limit settings
@@ -290,6 +297,289 @@ contig  number      sum   min    max    std  mean  median    N50
 ## I guess this means we would need to exclude low-length reads,
 ## to exclude the non-targeted reads.
 
+## for making readfish TOMLS, there is a good table on this in the nature paper, table 2.
+
+## for the record, the toml for the above experiment looks like:
+
+"""
+[caller_settings]
+config_name = "dna_r9.4.1_450bps_hac"
+host = "ipc:///tmp/.guppy/"
+port = 5555
+
+[conditions]
+reference = "/media/vol1/daniel/hostDepletion/hg38.mmi"
+
+[conditions.0]
+name = "select_chr_21_22"
+control = false
+min_chunks = 0
+max_chunks = inf
+targets = ["chr21", "chr22"]
+single_on = "stop_receiving"
+multi_on = "stop_receiving"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "proceed"
+no_map = "proceed"
+"""
+
+## the above is modified from:
+https://github.com/LooseLab/readfish/blob/master/examples/human_chr_selection.toml
+
+
+## can we play with this a little? For instance, what happens  if:
+## 1) we change "stop_receiving" to "unblock" for all non-target reads?
+## 2) we invert, and deplete these two target sequences 
+## 3) we block everything that aligns to the genome?
+
+
+## 1) we change "stop_receiving" to "unblock" for all non-target reads?
+
+cp human_chr_selection.toml human_chr_selection_stop2unblock.toml
+
+## so weird. Looking at their readfish toml, the have everything on 
+## target as "stop_receiving". Makes me think that this is the
+## command for accepting and sequencing the read. 
+
+## if that is correct, then changing these to unblock would 
+## reject most things. I think resulting in everything having
+## a read length average of ~500 bp. 
+
+## and just got confirmation from the loose lab github folks
+
+"""
+Proceed means that one collects more data for an individual read and you assess it again. Stop_receiving tells the sequencer to keep sequencing that read and not evaluate it again.
+
+So -
+unblock means a read will be rejected from the pore and a new one sampled.
+proceed means the read will continue to sequence and the next batch of singal will be analysed again.
+stop_receiving means send no more data about this read and let it sequence to normal completion.
+
+I hope that helps!
+"""
+
+## find this here:
+https://github.com/LooseLab/readfish/issues/242
+
+## Let's see. Here is the TOML
+
+## human_chr_selection_stop2unblock.toml
+[caller_settings]
+config_name = "dna_r9.4.1_450bps_hac"
+host = "ipc:///tmp/.guppy/"
+port = 5555
+
+[conditions]
+reference = "/media/vol1/daniel/hostDepletion/hg38.mmi"
+
+[conditions.0]
+name = "select_chr_21_22_stop2unblock"
+control = false
+min_chunks = 0
+max_chunks = inf
+targets = ["chr21", "chr22"]
+single_on = "unblock"
+multi_on = "unblock"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "proceed"
+no_map = "proceed"
+
+## run the readfish command with this new toml
+
+## as always, make sure we have group permission for the socket
+ls -l /tmp/.guppy/5555
+
+conda activate readfish
+
+## check that the client and server are talking:
+python -c 'from pyguppy_client_lib.pyclient import PyGuppyClient as PGC; \
+           c = PGC("ipc:///tmp/.guppy/5555", "dna_r9.4.1_450bps_fast.cfg"); \
+           c.connect(); print(c)'
+
+## yup. onto readfish
+readfish targets --device MN40608 \
+              --experiment-name "stop_receive2unblock" \
+              --toml /media/vol1/daniel/hostDepletion/human_chr_selection_stop2unblock.toml \
+              --log-file ru_test.log
+
+## running, let it go for a while
+
+
+TOML="/media/vol1/daniel/hostDepletion/human_chr_selection_stop2unblock.toml"
+reads="/var/lib/minknow/data/zoop7"
+readfish summary $TOML $reads
+
+## saving this as stop2unblock.txt, but cleaned up version here:
+
+"""
+contig  number      sum   min     max   std  mean  median    N50
+  chr1    8166  5297756   162   29411  1084   649     500    547
+  chr2   10335  6376134   153   50357  1085   617     491    532
+  chr3    7447  4992369   203   29286  1261   670     513    557
+  chr4    8234  5712847   110   29541  1290   694     505    571
+  chr5    5813  4295677   195   28837  1472   739     500    598
+  chr6    5877  3905658   186   67939  1415   665     508    552
+  chr7    5915  3850456   133   32864  1092   651     509    550
+  chr8    4520  3180204   202   29718  1260   704     511    584
+  chr9    4843  3443058   189  166227  2660   711     499    560
+ chr10    4548  2948968   162   28674  1098   648     502    549
+ chr11    4149  2862933   175   34784  1406   690     498    555
+ chr12    4310  3044324   197   55612  1394   706     515    578
+ chr13    2912  1845003   206   29650  1132   634     499    541
+ chr14    3136  2463883   173   38963  1753   786     510    639
+ chr15    5912  3623898   128   89365  1750   613     488    524
+ chr16    2234  1589472   169   36303  1413   711     496    599
+ chr17    2521  1922530   225   95271  2583   763     501    604
+ chr18    4134  2647552   190   70140  1510   640     500    542
+ chr19    1635  1494578   183  107938  3081   914     545    807
+ chr20    1078  1054159   187   40566  2437   978     533   1051
+ chr21    1200   970358   217   27835  1655   809     522    686
+ chr22     721   554628   211   29682  1726   769     517    647
+  chrM     226   208691   271   15379  1701   923     566    753
+  chrX    5835  4039849   189   30215  1323   692     505    567
+  chrY      23    15382   373    1034   192   669     645    722
+"""
+
+## yup. Unlike before, all chromosomes have an average of ~500 bp,
+## including 21 and 22. So we basically just blocked everything.
+
+## we'll want to do something like this below, in #3 and with our 
+## data. Except that the unmapped reads should all be set to 
+## "stop_receiving"
+
+
+## 2) we invert, and deplete these two target sequences, sequence everything else:
+
+human_chr_deplete21_22.toml
+"""
+[caller_settings]
+config_name = "dna_r9.4.1_450bps_hac"
+host = "ipc:///tmp/.guppy/"
+port = 5555
+
+[conditions]
+reference = "/media/vol1/daniel/hostDepletion/hg38.mmi"
+
+[conditions.0]
+name = "deplete_chr_21_22"
+control = false
+min_chunks = 0
+max_chunks = inf
+targets = ["chr21", "chr22"]
+single_on = "unblock"
+multi_on = "unblock"
+single_off = "stop_receiving"
+multi_off = "stop_receiving"
+no_seq = "proceed"
+no_map = "proceed"
+"""
+
+conda activate readfish
+
+## check that the client and server are talking:
+python -c 'from pyguppy_client_lib.pyclient import PyGuppyClient as PGC; \
+           c = PGC("ipc:///tmp/.guppy/5555", "dna_r9.4.1_450bps_fast.cfg"); \
+           c.connect(); print(c)'
+
+## yup. onto readfish
+readfish targets --device MN40608 \
+              --experiment-name "deplete21_22" \
+              --toml /media/vol1/daniel/hostDepletion/human_chr_deplete21_22.toml \
+              --log-file ru_test.log
+
+
+## check the results:
+
+TOML="/media/vol1/daniel/hostDepletion/human_chr_deplete21_22.toml"
+reads="/var/lib/minknow/data/zoop8"
+readfish summary $TOML $reads > readfishSummary_human_chr_deplete21_22.txt
+
+## redirect doesn't work. anyway, cleaned up, looks like this:
+
+contig  number      sum    min     max    std   mean  median     N50
+  chr1     203  1985656    223  143583  18456   9782    1921   35106
+  chr2     194  1940543    216  239229  26135  10003    2192   37848
+  chr3     195  1973224    249  321947  29054  10119    1950   41776
+  chr4     145  2620134    210  309287  40913  18070    2196   85360
+  chr5     191  2117429    259  191101  26404  11086    1865   43932
+  chr6     191  1412928    279  151998  16849   7398    1904   32483
+  chr7     114  1574735    277  242490  29940  13813    3518   49974
+  chr8     148  1255656    304  118447  16594   8484    1776   34932
+  chr9     132  1316892    216  179598  23458   9976    1798   43623
+ chr10     100  1076103    291  130248  19205  10761    2718   35462
+ chr11     135  1087374    215   96666  15629   8055    1805   33647
+ chr12     112  1235755    257  208411  24379  11034    1993   35706
+ chr13      95   617561    220  206157  24169   6501    1028  103486
+ chr14      95   975288    265  149505  25753  10266    1076   46059
+ chr15      90  1057315    289  158004  27721  11748    4298   40799
+ chr16      55   792690    241  241976  35456  14413    3260   62880
+ chr17      71   582331    408  184443  24092   8202    1605   52554
+ chr18      47   632308    380  146314  26010  13453    4060   47291
+ chr19      87   570863    384  142612  18646   6562    1295   28548
+ chr20      55   759285    249  156527  25388  13805    2097   40661
+ chr21     903   668203    231  195532   6559    740     428     632
+ chr22     366   318060    208   42955   2769    869     444    1195
+  chrM      12    87633    555   16467   7057   7303    4484   16362
+  chrX     132  2064894    213  321374  41516  15643    2251  134053
+
+## seems to work, chromosome 21 and 22 reads hover around rejection
+## size, the others around ~10,000
+~
+
+## 3) we block everything that aligns to the genome?
+
+## pertinent is issue 242:
+https://github.com/LooseLab/readfish/issues/242
+
+#cp human_chr_selection.toml human_chr_depleteEntireGenome.toml
+vim human_chr_depleteEntireGenome.toml
+
+chmod 777 human_chr_depleteEntireGenome.toml
+
+## looks like this:
+
+#human_chr_depleteEntireGenome.toml
+[caller_settings]
+config_name = "dna_r9.4.1_450bps_hac"
+host = "ipc:///tmp/.guppy/"
+port = 5555
+
+[conditions]
+reference = "/media/vol1/daniel/hostDepletion/hg38.mmi"
+
+[conditions.0]
+name = "deplete_genome"
+control = false
+min_chunks = 0
+max_chunks = inf
+targets = []
+single_on = "unblock"
+multi_on = "unblock"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "proceed"
+no_map = "stop_receiving"
+
+## try it out:
+
+readfish validate human_chr_depleteEntireGenome.toml
+
+readfish targets --device MN40608 \
+              --experiment-name "deplete_humanGenome" \
+              --toml human_chr_depleteEntireGenome.toml \
+              --log-file ru_test.log
+
+TOML="/media/vol1/daniel/hostDepletion/human_chr_depleteEntireGenome.toml"
+reads="/var/lib/minknow/data/zoop9"
+
+readfish summary $TOML $reads  
+## saving as 
+readfishSummary_human_chr_depleteGenome.txt
+
+
+
 
 ####### try on our data #####
 
@@ -312,6 +602,7 @@ ln -s /media/vol2/chris/Pabies_tests/bulk_fast5_files/MinION-PC_20230621_1522_FA
 ## config file
 
 vim /opt/ont/minknow/conf/package/sequencing/sequencing_MIN106_DNA.toml
+
 ## as above, we add/substitute the line:
 
 """
@@ -327,7 +618,6 @@ mv human_chr_selection.toml bigGenome_depletion.toml
 ## update the chemistry config file for guppy
 config_name = "dna_r10.4.1_e8.2_400bps_fast.cfg"
 reference = "/media/vol1/daniel/hostDepletion/ourData/Pabies_repeatsCompressed_mt_ch.mmi"
-
 ## renamed it to "depleteHost"
 
 ## but what do we do about the targets? we just want to unblock everything that 
@@ -336,9 +626,5 @@ reference = "/media/vol1/daniel/hostDepletion/ourData/Pabies_repeatsCompressed_m
 ## most of this information is here:
 https://github.com/LooseLab/readfish/blob/dev_staging/TOML.md#local-basecalling
 
-## there is a difference between unblocking (rejecting) a read, and receiving no 
-## further information from that read ("stop_receiving"). I guess the reason 
-## we got a lot of short reads in that experiment is because 
 
 
-## break
