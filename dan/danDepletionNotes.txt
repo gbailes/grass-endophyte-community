@@ -1026,4 +1026,24 @@ wc -l lessThan1000.fastq ## 73180 / 4 = 18295 reads after exclusion of the unblo
 ## denbi instance quick.
 ## done.
 
+## the simulation is still running - is there some way to know how many reads are in the 
+## 
+
+ls -lh /media/vol2/chris/Pabies_tests/bulk_fast5_files/MinION-PC_20230621_1522_FAU29445_MN40608_sequencing_run_bigger_e77dd4cd_5395a225.fast5
+
+## I think this is from this run:
+cd /var/lib/minknow/data/Pabies_bulk_fast5/bigger/20230621_1517_MN40608_FAU29445_e77dd4cd
+du -sh ## 2.1 G
+
+## he also has this run:
+cd /var/lib/minknow/data/Pabies_bulk_fast5/Version_1/20230621_1347_MN40608_FAU29445_a01d2181
+du -sh ## 650 M
+
+## not sure 
+## this is only 112M of passed fastq sequence data. That can't possibly be what I'm simulating with...
+## I'll have to ask Chris
+
+## anyway, stop the simulated run for now. We are already at the edge of computational resources for alignments, etc. 
+
+## generally good news, looks like our setup can handle the large genome, at least in the simulations. 
 
