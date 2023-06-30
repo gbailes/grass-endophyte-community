@@ -661,11 +661,21 @@ python -c 'from pyguppy_client_lib.pyclient import PyGuppyClient as PGC; \
            c = PGC("ipc:///tmp/.guppy/5555", "dna_r10.4.1_e8.2_400bps_fast.cfg"); \
            c.connect(); print(c)'
 
-## nope
+## nope. We are not alone:
+https://community.nanoporetech.com/posts/guppy-config-files-used-by
+## but of course nanopore doesn't really answer their question
+
+
 
 ## FLO-MIN114
 
 ## I think we need to restart the guppy server (and client?)
+
+systemctl status guppyd ## config is r9.4.1...
+
+sudo systemctl status minknow ## config is r9.4.1...
+
+cd /opt/ont/guppy/
 
 guppy_basecall_server --config dna_r10.4.1_e8.2_400bps_fast.cfg -p 5555 -l /tmp/guppy -x 'cuda:0'
 
@@ -692,9 +702,9 @@ python -c 'from pyguppy_client_lib.pyclient import PyGuppyClient as PGC; \
            c.connect(); print(c)'
 
 ## nope
+## can't get guppy to take the new chemistry...ugh. 
 
 ls -l /tmp/.guppy/5555
-
 sudo chmod 775 /tmp/.guppy/5555
 
 readfish targets --device MN40608 \
@@ -702,21 +712,140 @@ readfish targets --device MN40608 \
               --toml spruce_chloroplastEnrichment.toml \
               --log-file chloro_test.log
 
-#### try entire genome depletion ####
 
 cp /media/vol1/daniel/hostDepletion/human_chr_selection.toml \
 /media/vol1/daniel/hostDepletion/ourData/
 mv human_chr_selection.toml bigGenome_depletion.toml 
 
-
 sudo systemctl restart guppyd
+
 sudo systemctl status guppyd
 
-## can't get guppy to take the new chemistry...ugh. 
+## as before, the gringer lab has some hints about this:
 
+https://gringer.gitlab.io/presentation-notes/2021/10/08/gpu-calling-in-minknow/#verifying-the-configuration-change-1
 
+## ah, here is the description of the guppy settings
+cat /etc/systemd/system/guppyd.service
+
+cd /etc/systemd/system/
+
+## this is a link to:
+ls /lib/systemd/system/guppyd.service
+
+## make a backup and link to backup:
+
+sudo cp /lib/systemd/system/guppyd.service /lib/systemd/system/guppyd.service.bk
+
+sudo ln -s /lib/systemd/system/guppyd.service.bk /etc/systemd/system/guppyd.service.bk
+
+## try a manual edit?
+
+sudo vim /etc/systemd/system/guppyd.service
+## changed the following line:
+ExecStart=/opt/ont/guppy/bin/guppy_basecall_server --log_path /var/log/guppy --config dna_r9.4.1_450bps_fast.cfg --num_callers 1 --port /tmp/.guppy/5555 --ipc_threads 3 --device cuda:all
+## to:
+ExecStart=/opt/ont/guppy/bin/guppy_basecall_server --log_path /var/log/guppy --config dna_r10.4.1_e8.2_400bps_fast.cfg --num_callers 1 --port /tmp/.guppy/5555 --ipc_threads 3 --device cuda:all
+
+## restart:
+
+sudo systemctl restart guppyd ## didn't work. try:
+
+systemctl daemon-reload
+
+sudo systemctl status guppyd ## reports that it is using the new device, r10.4
+
+## will it work with our new data now?
+
+## always have to check the tcp socket permissions
+ls -l /tmp/.guppy/5555
+sudo chmod 775 /tmp/.guppy/5555
+
+python -c 'from pyguppy_client_lib.pyclient import PyGuppyClient as PGC; \
+           c = PGC("ipc:///tmp/.guppy/5555", "dna_r10.4.1_e8.2_400bps_fast.cfg"); \
+           c.connect(); print(c)'
+
+## works now, how about the readfish command itself?
+
+cd /media/vol1/daniel/hostDepletion/ourData
+
+readfish targets --device MN40608 \
+              --experiment-name "enrichChloroplast" \
+              --toml spruce_chloroplastEnrichment.toml \
+              --log-file chloro_test.log
+
+## and its running. Let that go for a while...
+
+## the report is probably really long:
+
+TOML="spruce_chloroplastEnrichment.toml"
+reads="/var/lib/minknow/data/spruceZoop4"
+readfish summary $TOML $reads  
+
+## output is too big, but luckily chloroplast
+## contig is at the bottom, here is a piece of 
+## it:
+
+ contig  number      sum    min     max    std   mean  median     N50
+ MA_9931298       2    5064  1223   3841   1851   2532    2532   3841
+ MA_9932586       5    3231   322   1407    447    646     526    648
+ MA_9934715       2     993   465    528     45    496     496    528
+ MA_9940839       3     924   282    353     39    308     289    289
+ MA_9943563       7   10663   489   4001   1214   1523    1172   2041
+ MA_9944826       3    1045   346    351      3    348     348    348
+ MA_9944965       2     740   370    370      0    370     370    370
+   MA_99477       4    2055   347    728    194    514     490    629
+ MA_9949434       3    2133   327   1232    468    711     574   1232
+ MA_9952592       2    1717   704   1013    218    858     858   1013
+ MA_9952612       2     702   312    390     55    351     351    390
+ MA_9954524       3    1747   541    606     36    582     600    600
+ MA_9957133       4    1626   364    434     31    406     414    426
+ MA_9958369       3    1041   267    488    122    347     286    286
+   MA_99587       5    1966   245    755    211    393     323    390
+ MA_9960185       6    3948   441   1052    215    658     632    677
+ MA_9960987       5    4064   321   2113    740    813     565   2113
+  MA_996288       8    2982   311    496     71    373     352    353
+ MA_9963269       4    2408   421    738    134    602     624    656
+ MA_9965332      15   29081   298   7890   2271   1939     787   4391
+ MA_9966395      51   52399   278   4916    736   1027     827   1203
+ MA_9967845       2    1147   375    772    281    574     574    772
+   MA_99688       2    3461   351   3110   1951   1730    1730   3110
+ MA_9970702       2    2682  1073   1609    379   1341    1341   1609
+ MA_9970721       2    2739   788   1951    822   1370    1370   1951
+  MA_997147       2     716   320    396     54    358     358    396
+ MA_9972548       2    1174   377    797    297    587     587    797
+ MA_9975192       8    4907   344    858    221    613     703    759
+ MA_9979455       2     925   364    561    139    462     462    561
+ MA_9980845       2     816   307    509    143    408     408    509
+  MA_998108       3    1503   472    523     26    501     508    508
+  MA_998135       2    1241   365    876    361    620     620    876
+   MA_99829       3    2977   410   1871    774    992     696   1871
+  MA_998349       3    9066   240   8145   4442   3022     681   8145
+  MA_998504       2    1079   372    707    237    540     540    707
+ MA_9994173       2    2351   427   1924   1059   1176    1176   1924
+   MA_99942      10   10426   312   2082    602   1043     924   1389
+ MA_9997692       2    1028   348    680    235    514     514    680
+ MA_9997874      10    3797   223   1027    239    380     289    358
+   MA_99981       2    2982  1464   1518     38   1491    1491   1518
+ MA_9998159       3    2061   316   1256    500    687     489   1256
+ MA_9998442       3    1208   318    479     81    403     411    411
+ MA_9999734       3    1197   323    450     67    399     424    424
+chloroplast     151  625899   249  14565   2979   4145    3546   5652
+
+## looks pretty good. The chloroplast have a much greater sum of BP,
+## longer median and mean. 
+
+#### try entire genome depletion ####
+
+## this time let's limit chunks to 3?
+
+## the base documentation is here
+https://github.com/LooseLab/readfish/blob/dev_staging/TOML.md#local-basecalling
+## the same issue above is useful here:
+https://github.com/LooseLab/readfish/issues/242
+
+## try the 
 ## "bigGenome_depletion.toml":
-
 [caller_settings]
 config_name = "dna_r10.4.1_e8.2_400bps_fast.cfg"
 host = "ipc:///tmp/.guppy/"
@@ -729,7 +858,7 @@ reference = "/media/vol1/daniel/hostDepletion/ourData/Pabies_repeatsCompressed_m
 name = "depleteSpruceHost"
 control = false
 min_chunks = 0
-max_chunks = inf
+max_chunks = 3
 targets = []
 single_on = "unblock"
 multi_on = "unblock"
@@ -738,12 +867,163 @@ multi_off = "unblock"
 no_seq = "proceed"
 no_map = "stop_receiving"
 
-## but what do we do about the targets? we just want to unblock everything that 
-## maps to the reference...
 
-## most of this information is here:
-https://github.com/LooseLab/readfish/blob/dev_staging/TOML.md#local-basecalling
+## try it out:
+readfish validate bigGenome_depletion.toml
 
->chloroplast
+readfish targets --device MN40608 \
+              --experiment-name "depleteSpruceGenome" \
+              --toml bigGenome_depletion.toml \
+              --log-file depleteSpruce_test.log
 
-## 
+
+## looks like it is working well, the mapping times 
+## are really low, ~0.13s
+
+TOML="spruce_chloroplastEnrichment.toml"
+reads="/var/lib/minknow/data/spruceZoop4"
+readfish summary $TOML $reads  
+
+
+
+######## processing, post readfish #########
+
+## I see several ways forward here. 
+
+## the most important info is that the short reads 
+## mostly rejected reads. 
+
+## also they are not that useful for 
+## metagenomes. 
+
+## so it makes sense to filter them out, right away,
+## and see if enough information remains for 
+## metagenomes and MAGs. 
+
+## I guess we could run a metagenome assembler on it 
+## right away. 
+
+## and do some gene prediction, send it off to 
+## kegg
+
+## to report nice results, we need to do both. Means 
+## a full metagenome/MAG pipeline. 
+## a quality check, etc. 
+ 
+## first step - filter reads <1000 bp
+
+## we have lots of fasta files, here:
+
+ls /var/lib/minknow/data/spruceZoop5/no_sample/20230630_1147_MN40608_spruceZoop5_f5ee253a/fastq_pass/
+
+ls -lh /var/lib/minknow/data/spruceZoop5/no_sample/20230630_1147_MN40608_spruceZoop5_f5ee253a/fastq_pass/
+
+cd /media/vol1/daniel/hostDepletion/ourData/bigGenome_depletion_data
+
+cp /var/lib/minknow/data/spruceZoop5/no_sample/20230630_1147_MN40608_spruceZoop5_f5ee253a/fastq_pass/*fastq.gz .
+
+gunzip *
+
+cat * > bigGenome.fastq
+
+wc -l bigGenome.fastq ## 128000/4 = 32000 reads
+
+grep -c "^@" bigGenome.fastq ## 32001
+
+## is there a seqtk solution?
+seqtk seq -L 1000 bigGenome.fastq > lessThan1000.fastq
+
+## get a fastqc report on this
+
+conda activate
+
+conda install -c bioconda fastqc
+
+rm -r qc/
+mkdir qc/
+fastqc -t 8 -o qc --extract  lessThan1000.fastq
+
+## get it local
+
+rm -r /home/daniel/Documents/projects/fichtelgebirge_project/spruceGenome/dataFromHostDep/qc
+file=/media/vol1/daniel/hostDepletion/ourData/bigGenome_depletion_data/qc/
+dest=/home/daniel/Documents/projects/fichtelgebirge_project/spruceGenome/dataFromHostDep/
+scp -r -i ~/.ssh/id_ed25519 test@132.180.112.115:$file $dest
+
+cd /home/daniel/Documents/projects/fichtelgebirge_project/spruceGenome/dataFromHostDep/qc
+
+firefox lessThan1000_fastqc.html ## huh, actually looks pretty good, an average quality per read ~18. 
+
+
+python3 
+import math
+## convert to probability (http://drive5.com/usearch/manual/quality_score.html)
+
+10**(-18/10) ## something like a 1.5% error rate, or 98.5% correct reads/bp
+
+## not bad.
+
+## it might be good to align these reads against the host genome, and see what is left 
+## standing...which genome should we use?
+
+## let's use the full genome, with repeats, plus mitochondria assembly, plus chloroplast:
+
+cat Pabies-haploid.fa Picea_abies_mtDNA_assembly.fa Pabies01-chloroplast.fa > Pabies-haploid_withOrganelles_raw.fa
+
+seqtk seq -l 60 Pabies-haploid_withOrganelles_raw.fa > Pabies-haploid_withOrganelles.fa
+
+
+minimap2 -a ref.fa query.fq > alignment.sam
+
+minimap2 -ax map-ont ref.fa ont-reads.fq > aln.sam 
+
+minimap2 -ax map-ont ref.fa ont-reads.fq > aln.sam 
+
+genome=/media/vol1/daniel/spruce/Pabies-haploid_withOrganelles.fa
+reads=/media/vol1/daniel/hostDepletion/ourData/bigGenome_depletion_data/lessThan1000.fastq
+
+minimap2 -t 4 -I 100g  -ax map-ont $genome $reads > bigReadsAlign2Spruce.sam  ## used up to 47 gig RAM. Wow. need de.NBI instance 
+
+## now we want just those that didn't align to host, as a start.
+## later we may not want to do this, may result in lower information 
+## about primary metabolism...
+
+conda create -n samtools -c bioconda samtools
+## for some reason, had to do a reinstall immediately to a lower version
+conda install -c bioconda samtools=1.9 --force-reinstall
+
+conda activate samtools 
+
+samtools view 
+
+samtools fastq -f4 bigReadsAlign2Spruce.sam > unalignedSpruceReads.fastq
+
+wc -l unalignedSpruceReads.fastq ## 2412, so only 600 reads, many of which look like junk...
+
+## if we assume 600 reads out of 32000 original reads are maybe microbial ~1.8%, seems reasonable
+## then 
+
+wc -l lessThan1000.fastq ## 73180 / 4 = 18295 reads after exclusion of the unblocked reads. 
+
+## 600 / 73180 = ~3.2% of reads. So this doesn't quite double the microbial reads (maybe) in this set. 
+
+## things are rosier if we judge by basepairs, not reads, because the reads are so long.
+
+## on the other hand, aligned again to host might cause a lot of less-than-great alignments
+## pulling away from our microbial reads artificially
+
+## and 1000 bp is too harsh of a cutoff. In this dataset, almost all reads are unblocked 
+## by 600 bp. Probably because we  
+
+## interesting, at least some of these are bacterial, 
+## like @9b04d8a6-be55-4753-8bae-311b90f96137, blasts to plasmid
+## and @c1654718-897f-4269-a511-ae62cdd2b380, also plasmid...hmmm
+## and @b5106860-7789-4d7d-a1b7-3af28dc88018, maybe also a plasmid, or just part of ecoli genome...
+## did we enrich for plasmids?
+
+## anyway, we need to automate this. Our local computer cannot handle even this little dataset. 
+://ds.aai.lifescience-ri.eu/ds/?entityID=https%3A%2F%2Fproxy.aai.lifescience-ri.eu%2Fmetadata%2Fbackend.xml&return=https%3A%2F%2Fproxy.aai.lifescience-ri.eu%2Fsaml2sp%2Fdisco# # reminds me we need to request a de.nbi instance, btw...probably today.
+## denbi instance quick.
+## done.
+
+
