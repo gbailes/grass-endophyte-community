@@ -3981,7 +3981,10 @@ hist(relativeDiff$ratio, breaks=20)
 
 hist(relativeDiff$ratio, breaks=80)
 
+hist(relativeDiff$ratio, breaks=40, xaxp = c(0,1,80))
+
 hist(relativeDiff$ratio, breaks=160, xaxp = c(0,160,160))
+
 
 ## huh. not sure what do with all that... 
 
@@ -3999,9 +4002,203 @@ hist(relativeDiff$ratio, breaks=160, xaxp = c(0,160,160))
 
 ## next time, find OTUs that are only present at FF, and check the 
 ## intersection with these sharedFF species.
-hist(relativeDiff$ratio, breaks=40, xaxp = c(0,1,80))
+
+## and see if the general NMS is interesting when FF sites are highlighted
+## the prediction being that FF would be at the interface of the two host
+## point clouds, and other sites would have two ellipses or something like 
+## that. 
+
+## let's select the species that are present in ~equal amounts (a ratio of 
+## 0.7 to 1.3?
+
+load("grass_biom_vs_cont_rem.rda")
+
+head(relativeDiff )
+dim(relativeDiff)
+
+relativeDiff[relativeDiff > 0.7 & relativeDiff < 1.3,,drop=FALSE]
+
+row.names(relativeDiff[relativeDiff > 0.7 & relativeDiff < 1.3,,drop=FALSE])
+
+FFevenlySharedOTUs <- row.names(relativeDiff[relativeDiff > 0.7 & relativeDiff < 1.3,,drop=FALSE])
+
+## let's see how common these shared FF OTUs are outside of FF 
+
+FFevenlySharedOTUs
+
+grass_biom_vs_cont_rem
+
+
+aa <- prune_taxa(FFevenlySharedOTUs, grass_biom_vs_cont_rem)
+aa <- prune_samples(sample_data(aa)$site != "French_flat", aa)
+aa <- merge_samples(aa, "site")
+bb <- otu_table(aa)
+bb[bb > 0] <- 1
+
+rowSums(bb)
+
+colSums(bb)
+
+sum(colSums(bb) == 8)
+
+sum(colSums(bb) > 4) ## 51 of these evenly shared ff species are also found in at least four other sites
+
+sum(colSums(bb) == 0) ## only 3 of these are not found elsewhere
+
+## these are not unusual organisms, 
+
+
+sharedFFOTUsOnlyFF <- colnames(bb[,colSums(bb) == 0] )
+## OTU1879:6grass OTU534:7grass OTU870:9grass
+
+## what is their taxonomy?:
+
+sharedFFOTUsOnlyFF 
+
+tax_table(grass_biom_vs_cont_rem)[sharedFFOTUsOnlyFF,]
+
+## Taxonomy Table:     [3 taxa by 7 taxonomic ranks]:
+##                Kingdom    Phylum             Class
+## OTU1879:6grass "k__Fungi" "p__Ascomycota"    "c__Sordariomycetes"
+## OTU534:7grass  "k__Fungi" "p__Ascomycota"    "c__Dothideomycetes"
+## OTU870:9grass  "k__Fungi" "p__Basidiomycota" "c__Tremellomycetes"
+##                Order             Family                Genius
+## OTU1879:6grass "o__Sordariales"  "f__Cephalothecaceae" "g__Cephalotheca"
+## OTU534:7grass  "o__Myriangiales" "f__Elsinoaceae"      NA
+## OTU870:9grass  "o__Tremellales"  NA                    NA
+##                Species
+## OTU1879:6grass NA
+## OTU534:7grass  NA
+## OTU870:9grass  NA
+
+
+## interesting but not a lot to work with there
+
+## what else is there to ask?
+
+sum(rowSums(bb) > 0)
+
+sum(rowSums(bb) > 1)
+
+colSums(otu_table(bb))
+
+rowSums(otu_table(bb))
+
+hist( rowSums(otu_table(bb)), 
+        breaks=135, 
+        xaxp = c(0,150,150))
+
+hist(relativeDiff$ratio, breaks=160, xaxp = c(0,160,160))
+
+## I just do not understand why the FF sites are closer together
+## than the others. 
+
+## ugh, I think I need to stop chasing this.
+
+## let's start to set up the overall NMS, colored by host, 
+## with FF sites highlighted. 
+
+?vegan::metaMDS
+
+data(dune)
+
+sol <- metaMDS(dune)
+
+## looks like sites are rows. 
+
+comm <- t(otu_table(grass_biom_vs_cont_rem))
+
+
+nms_all <- metaMDS(comm)
+
+dim(nms_all$points)
+
+head(nms_all$points)
 
 
 
+allSitesNMS <- cbind(nms_all$points,
+                  sample_data(grass_biom_vs_cont_rem)$site,
+                  sample_data(grass_biom_vs_cont_rem)$host
+                    )
+colnames(allSitesNMS) <- c("MDS1", "MDS2", "site", "host")
+
+## sanity check:
+
+head(allSitesNMS )
+tail(allSitesNMS )
+sample_data(grass_biom_vs_cont_rem)['5grass',c('host','site')]
+sample_data(grass_biom_vs_cont_rem)['159grass',c('host','site')]
+## looks okay
+
+## we also need the host and site:
+
+write.csv(allSitesNMS, file="NMS_grass_biom_vs_cont_rem.csv")
+
+## switch over to python and plot this
+
+python3
+
+import pandas as pd
+import os
+import matplotlib.pyplot as plt; plt.ion()
+
+grahamNMS = pd.read_csv('NMS_grass_biom_vs_cont_rem.csv', index_col=0)
+
+grahamNMS.head()
+
+
+## great. color by host:
+
+
+def colorForHost(host): 
+    if 'roemeri' in host: return('blue')
+    elif 'californica' in host: return('red')
+
+
+grahamNMS['colos'] = grahamNMS.host.apply(colorForHost)
+
+
+grahamNMS.head()
+
+## now, what do we want to plot? to start, what does a scatter 
+## look like?:
+
+plt.scatter(grahamNMS.MDS1,grahamNMS.MDS2, c=grahamNMS['colos'])
+
+## now, can we circle our FF sites?
+
+## our FF coordinate:
+
+
+
+ffFilt = (grahamNMS['site'] == 'French_flat')
+ffOnlyNMS = grahamNMS[ffFilt]
+
+
+plt.close('all')
+fig, ax = plt.subplots()
+ax.scatter(grahamNMS.MDS1,grahamNMS.MDS2, c=grahamNMS['colos'])
+##ax.plot(ffOnlyNMS.MDS1,ffOnlyNMS.MDS2, 'go', mfc='none')
+ax.plot(ffOnlyNMS.MDS1,ffOnlyNMS.MDS2, 'go', fillstyle='none', mew=2, markersize=5)
+
+help(plt.plot)
+
+
+## looking at some of the other sites:
+
+grahamNMS['site'].unique()
+
+twoHost = ["French_flat","Hazel_Dell","Horse_Rock","Whidbey"]
+
+
+n=3
+ffFilt = (grahamNMS['site'] == twoHost[n])
+ffOnlyNMS = grahamNMS[ffFilt]
+#plt.close('all')
+fig, ax = plt.subplots()
+ax.scatter(grahamNMS.MDS1,grahamNMS.MDS2, c=grahamNMS['colos'])
+##ax.plot(ffOnlyNMS.MDS1,ffOnlyNMS.MDS2, 'go', mfc='none')
+ax.plot(ffOnlyNMS.MDS1,ffOnlyNMS.MDS2, 'go', fillstyle='none', mew=2, markersize=5)
 
 
