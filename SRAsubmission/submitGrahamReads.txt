@@ -1,0 +1,250 @@
+## let's get graham's reads online 
+
+## repeat the process for the fichtelgebirge reads
+
+## the files for that are here:
+/home/daniel/Documents/projects/fichtelgebirge_project/sulariArneSoils/fichtelgebirgeSoils/sraSubmission
+
+##### submit the raw read files #######
+
+## we need the reads themselves. 
+
+## put these on the office tower and lab comp, so we can start an upload:
+
+getFile="/home/daniel/Downloads/reads.zip"
+putItHere="/media/vol1/daniel/graham"
+scp $getFile test@132.180.112.115:$putItHere
+
+## that will need to be gzipped:
+mkdir "/media/vol1/daniel/graham/rawReads"
+
+unzip reads.zip
+mv *fastq /media/vol1/daniel/graham/rawReads/
+
+## ftp upload, can this be automated?
+
+## following:
+https://www.ncbi.nlm.nih.gov/sra/docs/submitfiles/#file-transfer-protocol-ftp
+
+## should be something like this:
+
+
+ftp ftp-private.ncbi.nlm.nih.gov 
+
+subftp
+
+iodrac9octOckEpp
+
+cd /uploads/danchurchthomas_gmail.com_Gq8kA048/grahamRawRead_try2
+
+
+Address: ftp-private.ncbi.nlm.nih.gov
+Username: subftp
+Password: iodrac9octOckEpp
+
+cd uploads/danchurchthomas_gmail.com_Gq8kA048
+
+rename 
+/uploads/danchurchthomas_gmail.com_Gq8kA048/grahamRawReads
+
+cd /media/vol1/daniel/graham/rawReads
+{ nohup ftp -n ftp-private.ncbi.nlm.nih.gov <<- ENDOFMESSAGE
+user subftp iodrac9octOckEpp    
+binary
+prompt
+cd /uploads/danchurchthomas_gmail.com_Gq8kA048/grahamRawRead_try
+mput  *fastq.gz
+bye
+End-Of-Session 
+ENDOFMESSAGE
+} &
+
+## 142738
+## this keeps dying. try without automating it:
+
+ftp ftp-private.ncbi.nlm.nih.gov 
+
+prompt
+
+subftp
+
+iodrac9octOckEpp
+
+cd /uploads/danchurchthomas_gmail.com_Gq8kA048/grahamRawRead_try2
+
+mput  *fastq.gz
+
+## meh. Internet is shitty. 
+
+## let's check our files, make sure they all made it:
+## store this in: whatsInGrahamTry2.txt 
+
+## let's verify that all files are there
+
+## on 
+
+## look at the hand edited version, just filenames and sizes:
+
+ls -l /home/daniel/Documents/analyses/graham/rawReads
+
+ls -l /home/daniel/Documents/analyses/graham/rawReads | grep -c "fastq.gz"  ## 324
+
+grep -c "fastq.gz" whatsinthere.csv ## 323
+
+python3 
+
+import pandas as pd
+import os
+
+aa = pd.read_csv('whatsinthere.csv', names=("size","name"))
+bb = pd.Series(os.listdir('/home/daniel/Documents/analyses/graham/rawReads'))
+
+aa['name']
+
+cc = aa['name'].apply(lambda x: x in bb.values)
+dd = bb.apply(lambda x: x in aa['name'].values)
+
+cc.all() ## all of our uploaded files are found in the raw reads directory
+dd.all() ## but not all of the files in our raw reads directory is found in our uploads
+
+## which one?
+bb[~dd] ## s257,R2:
+
+'lane1-s257-index-GAGGACTT-CCTAAGTCNNNN-PosI_S257_L001_R2_001.fastq.gz'
+
+## files sizes otherwise okay?
+
+os.chdir("/home/daniel/Documents/analyses/graham/rawReads")
+
+fileSizesRaw = [ os.path.getsize(i) for i in os.listdir() ]
+
+ee = aa['size'].apply(lambda x: x in fileSizesRaw) 
+
+ee.all() ## one is not right
+
+aa[~ee].iloc[0,1] ## s006, R1 
+
+'lane1-s006-index-CTAGGTGA-CCTGTCAANNNN-Fr14_S6_L001_R1_001.fastq.gz'
+
+aa[~ee]                             ## 4630704 in our uploaded files 
+os.path.getsize(aa[~ee].iloc[0,1]) ## 16370601 on our raw read file
+
+## so, way too small, upload interrupted I guess. 
+
+## can I just upload these two failed files?
+
+## remind myself - on the lab computer?
+
+nanoComp
+
+cd /media/vol1/daniel/graham/rawReads ## yup
+
+## from there, try to start an upload:
+
+
+ftp ftp-private.ncbi.nlm.nih.gov 
+
+subftp
+
+iodrac9octOckEpp
+
+cd /uploads/danchurchthomas_gmail.com_Gq8kA048/grahamRawRead_try2
+
+#put lane1-s006-index-CTAGGTGA-CCTGTCAANNNN-Fr14_S6_L001_R1_001.fastq.gz
+#put lane1-s257-index-GAGGACTT-CCTAAGTCNNNN-PosI_S257_L001_R2_001.fastq.gz
+
+ls -l lane1-s006-index-CTAGGTGA-CCTGTCAANNNN-Fr14_S6_L001_R1_001.fastq.gz ## 16370601
+ls -l lane1-s257-index-GAGGACTT-CCTAAGTCNNNN-PosI_S257_L001_R2_001.fastq.gz ## 10387755
+
+## okay, should be good. Reran above checks, now looks good.
+
+########### datasheets ###########
+
+## I think I remember three sheets were required. With examples from last time:
+
+sulArnieSubmitReadDir="/home/daniel/Documents/projects/fichtelgebirge_project/sulariArneSoils/fichtelgebirgeSoils/sraSubmission/"
+
+## a sample sheet:
+less ${sulArnieSubmitReadDir}carbon4dMicrobialSamples.tsv
+
+## a metadata sheet:
+less ${sulArnieSubmitReadDir}carbon4dMetadata.tsv
+
+## and can't seem to find anything else. I guess just two.
+
+## start with the sample sheet ("metagenome or environmental" biosample sheet)
+
+## we have sample data, etc, from graham here:
+
+danNotesD="/home/daniel/Documents/analyses/graham/grass-endophyte-community/danNotes/"
+
+ls ${danNotesD}
+
+less ${danNotesD}grahamSample.csv
+
+## columns are explained here:
+## https://submit.ncbi.nlm.nih.gov/biosample/template/?package-0=Metagenome.environmental.1.0&action=definition
+
+python3
+import pandas as pd
+import os
+import natsort as ns
+import numpy as np
+
+colnames=["sample_name","sample_title","bioproject_accession","organism","host","isolation_source","collection_date","geo_loc_name","lat_lon","ref_biomaterial","rel_to_oxygen","samp_collect_device","samp_mat_process","samp_size","source_material_id","description"]
+
+## how do we get our sample names? 
+rawReadFiles = pd.Series(os.listdir('/home/daniel/Documents/analyses/graham/rawReads'))
+
+## looks like we can split this up using dashes, then underscores.
+## but there are some read files with too many dashes. Just to note for later:
+
+weirdNames=[
+"lane1-s160-index-AAGCACTG-GTGATCCANNNN-Dc-X_S160_L001_R1_001.fastq.gz",
+"lane1-s160-index-AAGCACTG-GTGATCCANNNN-Dc-X_S160_L001_R2_001.fastq.gz",
+"lane1-s161-index-AAGCACTG-TTCGTACGNNNN-Dc-PosG_S161_L001_R1_001.fastq.gz",
+"lane1-s161-index-AAGCACTG-TTCGTACGNNNN-Dc-PosG_S161_L001_R2_001.fastq.gz",
+"lane1-s162-index-AAGCACTG-ATGACAGGNNNN-Dc-PosI_S162_L001_R1_001.fastq.gz",
+"lane1-s162-index-AAGCACTG-ATGACAGGNNNN-Dc-PosI_S162_L001_R2_001.fastq.gz",
+"lane1-s163-index-AAGCACTG-CGACCTAANNNN-Dc-Neg_S163_L001_R1_001.fastq.gz",
+"lane1-s163-index-AAGCACTG-CGACCTAANNNN-Dc-Neg_S163_L001_R2_001.fastq.gz"
+]
+
+## so should be something like:
+aa = rawReadFiles.str.replace("Dc-","Dc") ## get rid of the extra dashes in weird names
+bb = aa.str.split("-", expand=True)[5]
+cc = bb.str.split("_", expand=True)
+dd = (cc[[0,1,3]]
+       .copy()
+       .rename({0:"fieldSample", 
+                1:"labSample",
+                3:"direction"}, axis=1)
+     )
+## might be good to add file names back in? for now, wait on this...
+## sort it to make this pretty
+fileNameDF = (dd.loc[ns.index_natsorted(dd["fieldSample"])]).reset_index(drop=True)
+
+## theoretically, we should have two directions, R1/R2 per each unique field sample name
+fileNameDF.reset_index().groupby(['fieldSample'])['direction'].nunique()
+fileNameDF.reset_index().groupby(['fieldSample'])['direction'].nunique().to_list()
+## all 2, good
+
+
+## does each field sample have a unique labsample? Or are there multiple 
+## labsamples per?
+
+(fileNameDF[["fieldSample","labSample"]]
+    .groupby("fieldSample")
+    .nunique()["labSample"]
+    .to_list()
+) ## all 1, good
+
+
+## these both look good. 
+
+## so, now what? to get our unique field and lab names:
+firstInstance = fileNameDF.reset_index().groupby(['fieldSample'])['index'].min().to_list()
+sampleNamesUnique = (fileNameDF.loc[firstInstance, ['fieldSample','labSample']]
+                      .reset_index(drop=True))
+sampleNamesUnique = sampleNamesUnique.loc[ns.index_natsorted(sampleNamesUnique["fieldSample"])]
+
