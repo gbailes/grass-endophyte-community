@@ -212,6 +212,9 @@ less ${danNotesD}grahamSample.csv
 ## Taxonomy ID: 1235509
 ## on office comp, use a conda env already made for something else:
 
+## graham's preprint is here, may be useful:
+https://docs.google.com/document/d/0B8oJrvuky7NXTExCdDdBdUJmSHpqbXNLbk84WnlPc2E3QmNj/edit?usp=sharing&ouid=106808919302528987604&resourcekey=0-UDH87Wym_Nwk_PcjJE-ucg&rtpof=true&sd=true
+
 conda activate spatialDirt
 
 python3
@@ -220,6 +223,11 @@ import pandas as pd
 import os, re
 import natsort as ns
 import numpy as np
+
+## if we want to see the whole df:
+#pd.set_option('display.max_rows', None)
+## to reset
+#pd.set_option('display.max_rows', 10)
 
 ## how do we get our sample names? 
 
@@ -275,36 +283,100 @@ fileNameDF.reset_index().groupby(['fieldSample'])['direction'].nunique().to_list
 ## these both look good. 
 
 ## so, now what? to get our unique field and lab names:
+
 firstInstance = fileNameDF.reset_index().groupby(['fieldSample'])['index'].min().to_list()
 sampleNamesUnique = fileNameDF.loc[firstInstance, ['fieldSample','labSample']]
+sampleNamesUnique.reset_index(drop=True, inplace=True)
 sampleNamesUnique = (sampleNamesUnique.loc[ns.index_natsorted(sampleNamesUnique["fieldSample"])]
                       .reset_index(drop=True))
 
-## let's use the field sample names as the official sample names, 
-## and let's give the lab names to the second column, "sample title"
+## let's use the lab sample names as the official sample names, 
+## and let's give the field names to the second column, "sample title"
 
-colnames=["sample_name","sample_title","bioproject_accession","organism","host","isolation_source","collection_date","geo_loc_name","lat_lon","ref_biomaterial","rel_to_oxygen","samp_collect_device","samp_mat_process","samp_size","source_material_id","description"]
 
 ## let's start our "sample sheet"
-sampleSheet = sampleNamesUnique.copy().rename({'fieldSample':'sample_name','labSample':'sample_title'}, axis=1)
+sampleSheet = sampleNamesUnique.copy().rename({'labSample':'sample_name','fieldSample':'sample_title'}, axis=1)
 ## as mentioned above, most of these are leaf "metagenomes" according to NCBI
 sampleSheet["organism"] = "leaf metagenome"
 ## but the controls are going to be "synthetic metagenome"
 controlPatt = re.compile("Neg|Pos|X")
-controls = sampleSheet[sampleSheet['sample_name'].str.contains(controlPatt)].index.to_list()
+controls = sampleSheet[sampleSheet['sample_title'].str.contains(controlPatt)].index.to_list()
 sampleSheet.loc[controls, 'organism'] = "synthetic metagenome"
 ## host will be "Danthonia californica", "Festuca roemeri", and NA for controls
-festucaSamples = sampleSheet[sampleSheet['sample_name'].str.contains("Fr")].index.to_list()
+festucaSamples = sampleSheet[sampleSheet['sample_title'].str.contains("Fr")].index.to_list()
 sampleSheet.loc[festucaSamples, 'host'] = "Festuca roemeri"
-danthSamples = sampleSheet[sampleSheet['sample_name'].str.contains("Dc")].index.to_list()
+danthSamples = sampleSheet[sampleSheet['sample_title'].str.contains("Dc")].index.to_list()
 sampleSheet.loc[danthSamples, 'host'] = "Danthonia californica"
 ## until graham tells me other wise, the "Dc-" controls will be considered to not have a host
-controls = sampleSheet[sampleSheet['sample_name'].str.contains(controlPatt)].index.to_list()
+controls = sampleSheet[sampleSheet['sample_title'].str.contains(controlPatt)].index.to_list()
 sampleSheet.loc[controls, 'host'] = "none"
-pd.set_option('display.max_rows', None)
 
-sampleSheet
+## for other information, we need this sheet:
+
+grahamSampleDataR = pd.read_csv("/home/daniel/Documents/projects/grass-endophyte-community/danNotes/grahamsSampleData.csv")
+## let's match up the sample names between these two:
+grahamSampleDataR.rename({'Unnamed: 0':'sample_name'}, axis=1, inplace=True)
+grahamSampleDataR['sample_name'] = ( pd.Series( ['S']* sampleSheet['sample_name'].shape[0] ) +
+                                            grahamSampleDataR['sample_name'].str.split("g", expand=True)[0] )
+## for isolation source, let's use the site info? not sure if there is a better place for this.
+sampleSheet["isolation_source"] = (sampleSheet['sample_name']
+                                     .apply(
+                                        lambda x: grahamSampleDataR.set_index('sample_name').loc[x]['site']))
+## we should probably add some ecological information to this, but do this later
+
+## geo location name may be tricky. Where are these places?
+## these should work for google maps:
+pd.concat([grahamSampleDataR[['site','longitude','latitude']].groupby('site')['latitude'].min(),
+             grahamSampleDataR[['site','longitude','latitude']].groupby('site')['longitude'].min() ],
+             axis=1)
+
+## gives us:
+siteLookup = {
+"French_flat" : "USA: Oregon, Cave Junction, French Flat",
+"Hazel_Dell" : "USA: Oregon, Eugene, Hazel Dell",
+"Horse_Rock" : "USA: Oregon, Crawfordsville, Horse Rock Ridge",
+"Lower_Table" : "USA: Oregon, Medford, Lower Table Rock",
+"Roxy_Ann" : "USA: Oregon, Medford, Roxy Ann Peak",
+"Upper_Table" : "USA: Medford, Upper Table Rock",
+"Upper_Weir" : "USA: Washington, Rainier, Upper Weir",
+"Whetstone" : "USA: Oregon, Medford, Whetsone",
+"Whidbey" : "USA: Washington, Coupeville, Whidbey Island",
+"Control" : "USA: University of Oregon"
+}
+sampleSheet["geo_loc_name"] = (sampleSheet["isolation_source"].apply(lambda x: siteLookup[x]))
+
+## lat lon has a specific formatting
+## should look like: 38.98 N 77.11 W
+
+## for us, this looks like:
+
+sampleSheet['latitude'] = sampleSheet['sample_name'].apply( 
+                   lambda x: grahamSampleDataR.set_index("sample_name")
+                            .loc[x,'latitude'])
+sampleSheet['longitude'] = sampleSheet['sample_name'].apply( 
+                   lambda x: grahamSampleDataR.set_index("sample_name")
+                            .loc[x,'longitude']).abs()
+## we can add the coordinates for the controls, even though they are meaningless:
+sampleSheet.loc[sampleSheet['isolation_source'] == "Control","longitude"] = 123.07
+sampleSheet.loc[sampleSheet['isolation_source'] == "Control","latitude"] = 44.05
+
+## and combine these in the format that they need...
+## should look like: 38.98 N 77.11 W
+sampleSheet["lat_lon"] = sampleSheet['latitude'].astype('string') + " N " + sampleSheet['longitude'].astype('string') + " W"
+
+
+
+grahamSampleDataR.head()
 
 colnames=["sample_name","sample_title","bioproject_accession","organism","host","isolation_source","collection_date","geo_loc_name","lat_lon","ref_biomaterial","rel_to_oxygen","samp_collect_device","samp_mat_process","samp_size","source_material_id","description"]
 
-sampleNamesUnique.copy()
+grahamSampleDataR.head()
+
+grahamSampleDataR.columns
+
+sampleSheet
+
+sampleSheet.head()
+
+sampleSheet.tail()
+
