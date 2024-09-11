@@ -359,24 +359,68 @@ sampleSheet['longitude'] = sampleSheet['sample_name'].apply(
 ## we can add the coordinates for the controls, even though they are meaningless:
 sampleSheet.loc[sampleSheet['isolation_source'] == "Control","longitude"] = 123.07
 sampleSheet.loc[sampleSheet['isolation_source'] == "Control","latitude"] = 44.05
-
 ## and combine these in the format that they need...
 ## should look like: 38.98 N 77.11 W
 sampleSheet["lat_lon"] = sampleSheet['latitude'].astype('string') + " N " + sampleSheet['longitude'].astype('string') + " W"
 
+## last required field = collection date...where is this information?
 
-
-grahamSampleDataR.head()
+## don't have it anywhere, asking Bitty and Graham
 
 colnames=["sample_name","sample_title","bioproject_accession","organism","host","isolation_source","collection_date","geo_loc_name","lat_lon","ref_biomaterial","rel_to_oxygen","samp_collect_device","samp_mat_process","samp_size","source_material_id","description"]
 
-grahamSampleDataR.head()
+## for now we have to put this on hold, onto I hear back about collection dates.
 
-grahamSampleDataR.columns
+###### metadata sheet #########
 
-sampleSheet
+## our data sheet from fichtelgebirge project looks like this:
 
-sampleSheet.head()
+## on laptop
+#sulArnieSubmitReadDir="/home/daniel/Documents/projects/fichtelgebirge_project/sulariArneSoils/fichtelgebirgeSoils/sraSubmission/"
+## on office comp:
+sulArnieSubmitReadDir="/home/daniel/Documents/projects/fichtelSoils/fichtelgebirgeSoils/sraSubmission/"
+less ${sulArnieSubmitReadDir}carbon4dMetadata.tsv
 
-sampleSheet.tail()
+metaCol = ['sample_name','library_ID','title','library_strategy',
+            'library_source','library_selection','library_layout','platform',
+             'instrument_model','design_description','filetype','filename',
+                   'filename2','filename3','filename4','assembly','fasta_file']
+
+## sample_name should be identical:
+grahamMetadata = pd.DataFrame(index=sampleSheet["sample_name"].copy())
+## in the past, I made it so the 
+## library id is the part of the file name that joins both the R1 and R2 reads, 
+## and is unique for each row/sample. 
+## to get this:
+aa = rawReadFiles.str.split("-", expand=True).iloc[:,1:5]
+libs = aa[1] + "-" + aa[2] + "-" + aa[3] + "-" + aa[4]
+smallSzeroPatt = re.compile("s(0){0,2}")
+libs.index = aa[1].str.replace(smallSzeroPatt,'S', regex=True)
+libs.drop_duplicates(inplace=True)
+grahamMetadata['library_ID'] = libs
+
+## title - last time we use a quick description of the sample origin
+def getTitle(x):
+    sash = sampleSheet.set_index('sample_name')
+    host=sash.loc[x,'host']
+    site=sash.loc[x,'geo_loc_name']
+    return( f"ITS metabarcoding of {host} fungal endophytes from {site}")
+metaTitles = grahamMetadata.reset_index()['sample_name'].apply(getTitle)
+metaTitles.index = grahamMetadata.index
+grahamMetadata['title'] = metaTitles
+## fix controls
+sampleSheet.loc[sampleSheet['isolation_source'] == "Control"]
+grahamMetadata.loc[['S163','S255'],"title"] = "ITS metabarcoding of lab negative control"
+grahamMetadata.loc[['S161', 'S256'],"title"] = "ITS metabarcoding of mock community control, genomic DNA"
+grahamMetadata.loc[['S162', 'S257'],"title"] = "ITS metabarcoding of mock community control, ITS amplicons"
+grahamMetadata.loc['S160',"title"] = "ITS metabarcoding of single species control, genomic DNA"
+## the next ones are easy:
+grahamMetadata['library_selection'] = 'PCR'
+grahamMetadata['library_layout'] = 'paired'
+grahamMetadata['platform'] = 'Illumina'
+grahamMetadata['instrument_model'] = 'MiSeq' ## can't get further info
+
+
+grahamMetadata.head()
+
 
