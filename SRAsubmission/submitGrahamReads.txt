@@ -227,19 +227,22 @@ import numpy as np
 ## if we want to see the whole df:
 #pd.set_option('display.max_rows', None)
 ## to reset
-#pd.set_option('display.max_rows', 10)
+#pd.reset_option('display.max_rows')
+## to see full cell contents:
+#pd.set_option("max_colwidth", None)
+
+pd.set_option("max_colwidth", 20)
+
+#pd.reset_option("max_colwidth")
 
 ## how do we get our sample names? 
 
 ## laptop:
-rawReadFiles = pd.Series(os.listdir('/home/daniel/Documents/analyses/graham/rawReads'))
-
+#rawReadFiles = pd.Series(os.listdir('/home/daniel/Documents/analyses/graham/rawReads'))
 ## office comp
 rawReadFiles = pd.Series(os.listdir("/media/vol/graham/rawReads"))
-
 ## looks like we can split this up using dashes, then underscores.
 ## but there are some read files with too many dashes. Just to note for later:
-
 weirdNames=[
 "lane1-s160-index-AAGCACTG-GTGATCCANNNN-Dc-X_S160_L001_R1_001.fastq.gz",
 "lane1-s160-index-AAGCACTG-GTGATCCANNNN-Dc-X_S160_L001_R2_001.fastq.gz",
@@ -250,7 +253,6 @@ weirdNames=[
 "lane1-s163-index-AAGCACTG-CGACCTAANNNN-Dc-Neg_S163_L001_R1_001.fastq.gz",
 "lane1-s163-index-AAGCACTG-CGACCTAANNNN-Dc-Neg_S163_L001_R2_001.fastq.gz"
 ]
-
 ## so should be something like:
 aa = rawReadFiles.str.replace("Dc-","Dc") ## get rid of the extra dashes in weird names
 bb = aa.str.split("-", expand=True)[5]
@@ -264,36 +266,26 @@ dd = (cc[[0,1,3]]
 ## might be good to add file names back in? for now, wait on this...
 ## sort it to make this pretty
 fileNameDF = (dd.loc[ns.index_natsorted(dd["fieldSample"])]).reset_index(drop=True)
-
 ## theoretically, we should have two directions, R1/R2 per each unique field sample name
 fileNameDF.reset_index().groupby(['fieldSample'])['direction'].nunique()
 fileNameDF.reset_index().groupby(['fieldSample'])['direction'].nunique().to_list()
 ## all 2, good
-
-
 ## does each field sample have a unique labsample? Or are there multiple 
 ## labsamples per?
-
 (fileNameDF[["fieldSample","labSample"]]
     .groupby("fieldSample")
     .nunique()["labSample"]
     .to_list()
 ) ## all 1, good
-
 ## these both look good. 
-
 ## so, now what? to get our unique field and lab names:
-
 firstInstance = fileNameDF.reset_index().groupby(['fieldSample'])['index'].min().to_list()
 sampleNamesUnique = fileNameDF.loc[firstInstance, ['fieldSample','labSample']]
 sampleNamesUnique.reset_index(drop=True, inplace=True)
 sampleNamesUnique = (sampleNamesUnique.loc[ns.index_natsorted(sampleNamesUnique["fieldSample"])]
                       .reset_index(drop=True))
-
 ## let's use the lab sample names as the official sample names, 
 ## and let's give the field names to the second column, "sample title"
-
-
 ## let's start our "sample sheet"
 sampleSheet = sampleNamesUnique.copy().rename({'labSample':'sample_name','fieldSample':'sample_title'}, axis=1)
 ## as mentioned above, most of these are leaf "metagenomes" according to NCBI
@@ -309,10 +301,8 @@ danthSamples = sampleSheet[sampleSheet['sample_title'].str.contains("Dc")].index
 sampleSheet.loc[danthSamples, 'host'] = "Danthonia californica"
 ## until graham tells me other wise, the "Dc-" controls will be considered to not have a host
 controls = sampleSheet[sampleSheet['sample_title'].str.contains(controlPatt)].index.to_list()
-sampleSheet.loc[controls, 'host'] = "none"
-
+sampleSheet.loc[controls, 'host'] = None
 ## for other information, we need this sheet:
-
 grahamSampleDataR = pd.read_csv("/home/daniel/Documents/projects/grass-endophyte-community/danNotes/grahamsSampleData.csv")
 ## let's match up the sample names between these two:
 grahamSampleDataR.rename({'Unnamed: 0':'sample_name'}, axis=1, inplace=True)
@@ -323,13 +313,11 @@ sampleSheet["isolation_source"] = (sampleSheet['sample_name']
                                      .apply(
                                         lambda x: grahamSampleDataR.set_index('sample_name').loc[x]['site']))
 ## we should probably add some ecological information to this, but do this later
-
 ## geo location name may be tricky. Where are these places?
 ## these should work for google maps:
 pd.concat([grahamSampleDataR[['site','longitude','latitude']].groupby('site')['latitude'].min(),
              grahamSampleDataR[['site','longitude','latitude']].groupby('site')['longitude'].min() ],
              axis=1)
-
 ## gives us:
 siteLookup = {
 "French_flat" : "USA: Oregon, Cave Junction, French Flat",
@@ -339,17 +327,14 @@ siteLookup = {
 "Roxy_Ann" : "USA: Oregon, Medford, Roxy Ann Peak",
 "Upper_Table" : "USA: Medford, Upper Table Rock",
 "Upper_Weir" : "USA: Washington, Rainier, Upper Weir",
-"Whetstone" : "USA: Oregon, Medford, Whetsone",
+"Whetstone" : "USA: Oregon, Medford, Whetstone",
 "Whidbey" : "USA: Washington, Coupeville, Whidbey Island",
 "Control" : "USA: University of Oregon"
 }
 sampleSheet["geo_loc_name"] = (sampleSheet["isolation_source"].apply(lambda x: siteLookup[x]))
-
 ## lat lon has a specific formatting
 ## should look like: 38.98 N 77.11 W
-
 ## for us, this looks like:
-
 sampleSheet['latitude'] = sampleSheet['sample_name'].apply( 
                    lambda x: grahamSampleDataR.set_index("sample_name")
                             .loc[x,'latitude'])
@@ -362,14 +347,60 @@ sampleSheet.loc[sampleSheet['isolation_source'] == "Control","latitude"] = 44.05
 ## and combine these in the format that they need...
 ## should look like: 38.98 N 77.11 W
 sampleSheet["lat_lon"] = sampleSheet['latitude'].astype('string') + " N " + sampleSheet['longitude'].astype('string') + " W"
-
+## drop the individual lat/lon fields:
+sampleSheet.drop(['latitude', 'longitude'], axis='columns', inplace=True)
 ## last required field = collection date...where is this information?
+## graham gives us the following info in his email from 11.9.2024:
+#F. roemeri
+#    French Flat: 2015/05/30
+#    Roxy Ann Peak: 2015/06/01
+#    Upper Table Rock: 2015/06/01
+#    Hazel Dell: 2015/06/10
+#    Horse Rock: 2015/06/24
+#    Upper Weir:2015/06/13
+#    Whidbey: 2015/06/20
+#D. californica
+#    French Flat: 2015/05/30
+#    Whetstone: 2015/05/31
+#    Lower Table Rock: 2015/05/31
+#    Hazel Dell: 2015/06/05
+#    Horse Rock: 2015/06/15
+#    Whidbey: 2015/06/21
+FrDates = {
+ 'French_flat':"2015-05-30",
+  'Hazel_Dell':"2015-06-10",
+  'Horse_Rock':"2015-06-24",
+ 'Lower_Table':None,
+    'Roxy_Ann':"2015-06-01",
+ 'Upper_Table':"2015-06-01",
+  'Upper_Weir':"2015-06-13",
+   'Whetstone':None,
+     'Whidbey':"2015-06-20",
+     'Control':None
+}
+DcDates = {
+ 'French_flat':"2015-05-30",
+  'Hazel_Dell':"2015-06-05",
+  'Horse_Rock':"2015-06-15",
+ 'Lower_Table':"2015-05-31",
+    'Roxy_Ann':None,
+ 'Upper_Table':None,
+  'Upper_Weir':None,
+   'Whetstone':"2015-05-31",
+     'Whidbey':"2015-06-21",
+     'Control':None
+}
+sampleSheet["collection_date"] = None
+dcPatt = re.compile("Dc[0-9]")
+sampleSheet.loc[sampleSheet['sample_title'].str.contains(dcPatt), "collection_date"] \
+  = sampleSheet.loc[sampleSheet['sample_title'].str.contains(dcPatt), "isolation_source"].apply(lambda x: DcDates[x])
+FrPatt = re.compile("Fr")
+sampleSheet.loc[sampleSheet['sample_title'].str.contains(FrPatt), "collection_date"] \
+  = sampleSheet.loc[sampleSheet['sample_title'].str.contains(FrPatt), "isolation_source"].apply(lambda x: FrDates[x])
 
-## don't have it anywhere, asking Bitty and Graham
+
 
 colnames=["sample_name","sample_title","bioproject_accession","organism","host","isolation_source","collection_date","geo_loc_name","lat_lon","ref_biomaterial","rel_to_oxygen","samp_collect_device","samp_mat_process","samp_size","source_material_id","description"]
-
-## for now we have to put this on hold, onto I hear back about collection dates.
 
 ###### metadata sheet #########
 
@@ -398,13 +429,13 @@ smallSzeroPatt = re.compile("s(0){0,2}")
 libs.index = aa[1].str.replace(smallSzeroPatt,'S', regex=True)
 libs.drop_duplicates(inplace=True)
 grahamMetadata['library_ID'] = libs
-
 ## title - last time we use a quick description of the sample origin
 def getTitle(x):
     sash = sampleSheet.set_index('sample_name')
     host=sash.loc[x,'host']
     site=sash.loc[x,'geo_loc_name']
     return( f"ITS metabarcoding of {host} fungal endophytes from {site}")
+
 metaTitles = grahamMetadata.reset_index()['sample_name'].apply(getTitle)
 metaTitles.index = grahamMetadata.index
 grahamMetadata['title'] = metaTitles
@@ -419,8 +450,53 @@ grahamMetadata['library_selection'] = 'PCR'
 grahamMetadata['library_layout'] = 'paired'
 grahamMetadata['platform'] = 'Illumina'
 grahamMetadata['instrument_model'] = 'MiSeq' ## can't get further info
+## design_description: something like:
+grahamMetadata['design_description'] = \
+"DNA extracted from plant leaves using column extraction kits, \
+amplified with 16S ITS1F/ITS2 primers, \
+PCR product diluted to 7.013 ng/µl for sequencing."
+
+## controls a little different
+
+grahamMetadata.loc
 
 
-grahamMetadata.head()
+"DNA extracted from individual fungal cultures \
+ using column extraction kits, DNA extracts combined \
+in equimolar amounts and amplified with 16S ITS1F/ITS2 primers, \
+PCR product diluted to 7.013 ng/µl for sequencing."
 
+## filetype:
+grahamMetadata['filetype'] = "fastq"
+
+## filename and filename2:
+
+## each library_ID should have two files associated with it:
+
+grahamMetadata['library_ID']
+
+## R1 files:
+
+## check:
+libIDR1patt = re.compile(grahamMetadata['library_ID'].iloc[0]+(".*R1.*"))
+libIDR2patt = re.compile(grahamMetadata['library_ID'].iloc[0]+(".*R2.*"))
+rawReadFiles[ rawReadFiles.str.contains(libIDR1patt) ]
+rawReadFiles[ rawReadFiles.str.contains(libIDR2patt) ]
+
+## so go through all the library ids and get a value 
+
+
+
+def getFilesFromLibID(x,R):
+    if R == 1: libIDRpatt = re.compile(x+(".*R1.*"))
+    if R == 2: libIDRpatt = re.compile(x+(".*R2.*"))
+    r = rawReadFiles[ rawReadFiles.str.contains(libIDRpatt) ].iloc[0]
+    return(r)
+
+grahamMetadata['filename'] = grahamMetadata['library_ID'].apply(getFilesFromLibID,R=1)
+grahamMetadata['filename2'] = grahamMetadata['library_ID'].apply(getFilesFromLibID,R=2)
+
+grahamMetadata
+
+grahamMetadata.to_csv('grahamMetadata.tsv',index=False, sep="\t")
 
