@@ -174,6 +174,7 @@ ls -l lane1-s257-index-GAGGACTT-CCTAAGTCNNNN-PosI_S257_L001_R2_001.fastq.gz ## 1
 
 ## okay, should be good. Reran above checks, now looks good.
 
+
 ########### datasheets ###########
 
 ## I think I remember three sheets were required. With examples from last time:
@@ -230,9 +231,7 @@ import numpy as np
 #pd.reset_option('display.max_rows')
 ## to see full cell contents:
 #pd.set_option("max_colwidth", None)
-
-pd.set_option("max_colwidth", 20)
-
+#pd.set_option("max_colwidth", 20)
 #pd.reset_option("max_colwidth")
 
 ## how do we get our sample names? 
@@ -301,7 +300,7 @@ danthSamples = sampleSheet[sampleSheet['sample_title'].str.contains("Dc")].index
 sampleSheet.loc[danthSamples, 'host'] = "Danthonia californica"
 ## until graham tells me other wise, the "Dc-" controls will be considered to not have a host
 controls = sampleSheet[sampleSheet['sample_title'].str.contains(controlPatt)].index.to_list()
-sampleSheet.loc[controls, 'host'] = None
+sampleSheet.loc[controls, 'host'] = "not applicable"
 ## for other information, we need this sheet:
 grahamSampleDataR = pd.read_csv("/home/daniel/Documents/projects/grass-endophyte-community/danNotes/grahamsSampleData.csv")
 ## let's match up the sample names between these two:
@@ -376,7 +375,7 @@ FrDates = {
   'Upper_Weir':"2015-06-13",
    'Whetstone':None,
      'Whidbey':"2015-06-20",
-     'Control':None
+     'Control':"missing: control sample"
 }
 DcDates = {
  'French_flat':"2015-05-30",
@@ -388,7 +387,7 @@ DcDates = {
   'Upper_Weir':None,
    'Whetstone':"2015-05-31",
      'Whidbey':"2015-06-21",
-     'Control':None
+     'Control':"missing: control sample"
 }
 sampleSheet["collection_date"] = None
 dcPatt = re.compile("Dc[0-9]")
@@ -397,10 +396,34 @@ sampleSheet.loc[sampleSheet['sample_title'].str.contains(dcPatt), "collection_da
 FrPatt = re.compile("Fr")
 sampleSheet.loc[sampleSheet['sample_title'].str.contains(FrPatt), "collection_date"] \
   = sampleSheet.loc[sampleSheet['sample_title'].str.contains(FrPatt), "isolation_source"].apply(lambda x: FrDates[x])
+sampleSheet.loc[sampleSheet['isolation_source'] == "Control", "collection_date"] = "missing: control sample"
+
+## used for a last-minute fix:
+#sampleSheet.loc[sampleSheet['isolation_source'] == "Control", "collection_date"] = "missing: control sample"
+
+## additionally, looks like we need to add a column to differentiate the samples
+## taken at each site, sample number alone is not enough.
+## can we generate a UID by location and sample name?
+
+sampleSheet['UID'] = sampleSheet['isolation_source'] + sampleSheet['sample_name']
 
 
+## had to add the following columns, new since last time. Details here:
+#https://github.com/EnvironmentOntology/envo/wiki/Using-ENVO-with-MIxS
+sampleSheet['env_broad_scale'] = "temperate grassland biome [ENVO_01000193]"
+sampleSheet['env_local_scale'] = "environment associated with a plant part or small plant [ENVO 01001057]"
+sampleSheet['env_medium'] = "plant matter [ENVO:01001121]"
 
-colnames=["sample_name","sample_title","bioproject_accession","organism","host","isolation_source","collection_date","geo_loc_name","lat_lon","ref_biomaterial","rel_to_oxygen","samp_collect_device","samp_mat_process","samp_size","source_material_id","description"]
+## for all controls, broad scale would be:
+sampleSheet.loc[sampleSheet['isolation_source'] == "Control", "env_broad_scale"] = "laboratory environment [ENVO 01001405]"
+## positive controls local and environmental medium:
+sampleSheet.loc[sampleSheet['sample_title'].str.contains("Pos"), "env_local_scale"] = "culturing environment [ENVO 01000312]"
+sampleSheet.loc[sampleSheet['sample_title']== ("DcX"), "env_local_scale"] = "culturing environment [ENVO 01000312]"
+sampleSheet.loc[sampleSheet['sample_title'].str.contains("Pos"), "env_medium"] = "mock community culture [ENVO 01001059]"
+sampleSheet.loc[sampleSheet['sample_title']== ("DcX"), "env_medium"] = "single strain cell culture [ENVO_01001060]"
+## negative controls:
+sampleSheet.loc[sampleSheet['sample_title'].str.contains("Neg"), "env_local_scale"] = "liquid water [ENVO_00002006]"
+sampleSheet.loc[sampleSheet['sample_title'].str.contains("Neg"), "env_medium"] = "sterile water [ENVO_00005791]"
 
 ###### metadata sheet #########
 
@@ -455,48 +478,47 @@ grahamMetadata['design_description'] = \
 "DNA extracted from plant leaves using column extraction kits, \
 amplified with 16S ITS1F/ITS2 primers, \
 PCR product diluted to 7.013 ng/µl for sequencing."
-
 ## controls a little different
-
-grahamMetadata.loc
-
-
-"DNA extracted from individual fungal cultures \
+(grahamMetadata
+  .loc[sampleSheet.set_index('sample_name')['isolation_source'] == "Control","design_description"]) = \
+"DNA extracted from individual fungal cultures or pure water controls \
  using column extraction kits, DNA extracts combined \
 in equimolar amounts and amplified with 16S ITS1F/ITS2 primers, \
 PCR product diluted to 7.013 ng/µl for sequencing."
-
 ## filetype:
 grahamMetadata['filetype'] = "fastq"
-
 ## filename and filename2:
-
 ## each library_ID should have two files associated with it:
-
-grahamMetadata['library_ID']
-
-## R1 files:
-
-## check:
-libIDR1patt = re.compile(grahamMetadata['library_ID'].iloc[0]+(".*R1.*"))
-libIDR2patt = re.compile(grahamMetadata['library_ID'].iloc[0]+(".*R2.*"))
-rawReadFiles[ rawReadFiles.str.contains(libIDR1patt) ]
-rawReadFiles[ rawReadFiles.str.contains(libIDR2patt) ]
-
-## so go through all the library ids and get a value 
-
-
-
 def getFilesFromLibID(x,R):
     if R == 1: libIDRpatt = re.compile(x+(".*R1.*"))
     if R == 2: libIDRpatt = re.compile(x+(".*R2.*"))
     r = rawReadFiles[ rawReadFiles.str.contains(libIDRpatt) ].iloc[0]
     return(r)
-
 grahamMetadata['filename'] = grahamMetadata['library_ID'].apply(getFilesFromLibID,R=1)
 grahamMetadata['filename2'] = grahamMetadata['library_ID'].apply(getFilesFromLibID,R=2)
 
-grahamMetadata
+## forgot these:
+grahamMetadata['library_strategy'] = "AMPLICON"
+grahamMetadata['library_source'] = "METAGENOMIC"
+
+
+####### prep forms for submission #####
+
+## reorder to make sure they fit the formatting of template sheets:
+
+grahamMetadata = grahamMetadata[['library_ID', 'title', 'library_strategy','library_source',
+                'library_selection', 'library_layout', 'platform', 
+                'instrument_model', 'design_description', 'filetype',
+                'filename', 'filename2']]
+
+sampleSheet = sampleSheet[['sample_name', 'sample_title', 'organism', 
+                'host', 'isolation_source', 'collection_date', 'geo_loc_name', 'lat_lon',
+                'env_broad_scale', 'env_local_scale', 'env_medium', 'UID']]
+
+sampleSheet.to_csv('sampleSheet.tsv',index=False, sep="\t")
 
 grahamMetadata.to_csv('grahamMetadata.tsv',index=False, sep="\t")
 
+## start up submission wizard
+
+grahamMetadata.to_csv('grahamMetadata.tsv',index=False, sep="\t")
