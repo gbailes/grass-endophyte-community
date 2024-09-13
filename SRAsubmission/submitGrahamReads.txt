@@ -237,9 +237,9 @@ import numpy as np
 ## how do we get our sample names? 
 
 ## laptop:
-#rawReadFiles = pd.Series(os.listdir('/home/daniel/Documents/analyses/graham/rawReads'))
+rawReadFiles = pd.Series(os.listdir('/home/daniel/Documents/analyses/graham/rawReads'))
 ## office comp
-rawReadFiles = pd.Series(os.listdir("/media/vol/graham/rawReads"))
+#rawReadFiles = pd.Series(os.listdir("/media/vol/graham/rawReads"))
 ## looks like we can split this up using dashes, then underscores.
 ## but there are some read files with too many dashes. Just to note for later:
 weirdNames=[
@@ -302,7 +302,10 @@ sampleSheet.loc[danthSamples, 'host'] = "Danthonia californica"
 controls = sampleSheet[sampleSheet['sample_title'].str.contains(controlPatt)].index.to_list()
 sampleSheet.loc[controls, 'host'] = "not applicable"
 ## for other information, we need this sheet:
-grahamSampleDataR = pd.read_csv("/home/daniel/Documents/projects/grass-endophyte-community/danNotes/grahamsSampleData.csv")
+## on laptop
+grahamSampleDataR = pd.read_csv("/home/daniel/Documents/analyses/graham/grass-endophyte-community/danNotes/grahamsSampleData.csv")
+## on workComp
+#grahamSampleDataR = pd.read_csv("/home/daniel/Documents/projects/grass-endophyte-community/danNotes/grahamsSampleData.csv")
 ## let's match up the sample names between these two:
 grahamSampleDataR.rename({'Unnamed: 0':'sample_name'}, axis=1, inplace=True)
 grahamSampleDataR['sample_name'] = ( pd.Series( ['S']* sampleSheet['sample_name'].shape[0] ) +
@@ -397,23 +400,11 @@ FrPatt = re.compile("Fr")
 sampleSheet.loc[sampleSheet['sample_title'].str.contains(FrPatt), "collection_date"] \
   = sampleSheet.loc[sampleSheet['sample_title'].str.contains(FrPatt), "isolation_source"].apply(lambda x: FrDates[x])
 sampleSheet.loc[sampleSheet['isolation_source'] == "Control", "collection_date"] = "missing: control sample"
-
-## used for a last-minute fix:
-#sampleSheet.loc[sampleSheet['isolation_source'] == "Control", "collection_date"] = "missing: control sample"
-
-## additionally, looks like we need to add a column to differentiate the samples
-## taken at each site, sample number alone is not enough.
-## can we generate a UID by location and sample name?
-
-sampleSheet['UID'] = sampleSheet['isolation_source'] + sampleSheet['sample_name']
-
-
 ## had to add the following columns, new since last time. Details here:
 #https://github.com/EnvironmentOntology/envo/wiki/Using-ENVO-with-MIxS
 sampleSheet['env_broad_scale'] = "temperate grassland biome [ENVO_01000193]"
 sampleSheet['env_local_scale'] = "environment associated with a plant part or small plant [ENVO 01001057]"
 sampleSheet['env_medium'] = "plant matter [ENVO:01001121]"
-
 ## for all controls, broad scale would be:
 sampleSheet.loc[sampleSheet['isolation_source'] == "Control", "env_broad_scale"] = "laboratory environment [ENVO 01001405]"
 ## positive controls local and environmental medium:
@@ -427,13 +418,15 @@ sampleSheet.loc[sampleSheet['sample_title'].str.contains("Neg"), "env_medium"] =
 
 ###### metadata sheet #########
 
+################################################################
 ## our data sheet from fichtelgebirge project looks like this:
-
 ## on laptop
 #sulArnieSubmitReadDir="/home/daniel/Documents/projects/fichtelgebirge_project/sulariArneSoils/fichtelgebirgeSoils/sraSubmission/"
 ## on office comp:
 sulArnieSubmitReadDir="/home/daniel/Documents/projects/fichtelSoils/fichtelgebirgeSoils/sraSubmission/"
 less ${sulArnieSubmitReadDir}carbon4dMetadata.tsv
+################################################################
+
 
 metaCol = ['sample_name','library_ID','title','library_strategy',
             'library_source','library_selection','library_layout','platform',
@@ -472,7 +465,7 @@ grahamMetadata.loc['S160',"title"] = "ITS metabarcoding of single species contro
 grahamMetadata['library_selection'] = 'PCR'
 grahamMetadata['library_layout'] = 'paired'
 grahamMetadata['platform'] = 'Illumina'
-grahamMetadata['instrument_model'] = 'MiSeq' ## can't get further info
+grahamMetadata['instrument_model'] = 'Illumina MiSeq' 
 ## design_description: something like:
 grahamMetadata['design_description'] = \
 "DNA extracted from plant leaves using column extraction kits, \
@@ -494,19 +487,38 @@ def getFilesFromLibID(x,R):
     if R == 2: libIDRpatt = re.compile(x+(".*R2.*"))
     r = rawReadFiles[ rawReadFiles.str.contains(libIDRpatt) ].iloc[0]
     return(r)
+
 grahamMetadata['filename'] = grahamMetadata['library_ID'].apply(getFilesFromLibID,R=1)
 grahamMetadata['filename2'] = grahamMetadata['library_ID'].apply(getFilesFromLibID,R=2)
-
 ## forgot these:
 grahamMetadata['library_strategy'] = "AMPLICON"
 grahamMetadata['library_source'] = "METAGENOMIC"
-
+## think we need a biosample accession column:
+grahamMetadata['biosample_accession'] = None
 
 ####### prep forms for submission #####
 
-## reorder to make sure they fit the formatting of template sheets:
+## this section has be run after all of the above
+## tried submission, and we need some last minute changes
+## looks like we need to switch our sample_name and sample_title 
+## because we used a similar S__ scheme in a previous 
+## submission, apparently this is not permitted. 
+## can we switch the lab and field ID, as sample_title/sample_name?
 
-grahamMetadata = grahamMetadata[['library_ID', 'title', 'library_strategy','library_source',
+sampleSheet.rename({'sample_name':'sample_title', 'sample_title':'sample_name'}, axis=1, inplace=True)
+## also looks like we need to create another column to differentiate samples beyond
+## just the sample name/title   
+sampleSheet['UID'] = sampleSheet['isolation_source'] + sampleSheet['sample_name']
+## we need to adjust our metadata samplenames also:
+grahamMetadata.reset_index(inplace=True)
+grahamMetadata.rename({'sample_name':'sample_title'}, inplace=True, axis=1)
+## check order:
+(sampleSheet['sample_title'] == grahamMetadata['sample_title']).all()
+## looks good:
+grahamMetadata['sample_name'] = sampleSheet['sample_name']
+
+## reorder to make sure they fit the formatting of template sheets:
+grahamMetadata = grahamMetadata[['sample_name','biosample_accession','library_ID', 'title', 'library_strategy','library_source',
                 'library_selection', 'library_layout', 'platform', 
                 'instrument_model', 'design_description', 'filetype',
                 'filename', 'filename2']]
@@ -519,6 +531,5 @@ sampleSheet.to_csv('sampleSheet.tsv',index=False, sep="\t")
 
 grahamMetadata.to_csv('grahamMetadata.tsv',index=False, sep="\t")
 
-## start up submission wizard
 
-grahamMetadata.to_csv('grahamMetadata.tsv',index=False, sep="\t")
+## oh god, that sucked. 
